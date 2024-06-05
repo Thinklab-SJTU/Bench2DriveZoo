@@ -4,7 +4,7 @@
 - TCP
     - [Hugging Face Link](https://huggingface.co/rethinklab/Bench2DriveZoo/tree/main)
     - [Baidu Cloud Link](https://pan.baidu.com/s/1CgYscY2esIJLRepkO3FBvQ?pwd=1234)
-- [ADMLP]
+- ADMLP
     - [Hugging Face Link](https://huggingface.co/rethinklab/Bench2DriveZoo/tree/main)
     - [Baidu Cloud Link](https://pan.baidu.com/s/1RefJxk0B4kYcnf63Vi-ISA?pwd=1234)
 
