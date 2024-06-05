@@ -30,11 +30,11 @@ Training:
 # Closed Loop Evaluation    
 Please follow these steps to evaluate TCP/ADMLP in Carla:
 
-## Preparations
+### Preparations
 - Install Bench2Drive from [here](https://github.com/Thinklab-SJTU/Bench2Drive).
 - Follow [this](https://github.com/Thinklab-SJTU/Bench2Drive/tree/main#setup) to install Carla.
 
-## Link this repo to Bench2Drive
+### Link this repo to Bench2Drive
 
 ```bash
     # Add your agent code
@@ -47,5 +47,5 @@ Please follow these steps to evaluate TCP/ADMLP in Carla:
     ln -s Bench2DriveZoo/team_code/*  ./ # link entire repo to Bench2Drive
 ```
 
-## Run Evaluation 
+### Run Evaluation 
 Follow [this](https://github.com/Thinklab-SJTU/Bench2Drive?tab=readme-ov-file#eval-tools) to use evaluation tools of Bench2Drive.
