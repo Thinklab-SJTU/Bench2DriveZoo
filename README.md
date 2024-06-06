@@ -1,12 +1,12 @@
 
 <h2 align="center">
-  <img src="asserts/bench2drive.jpg" style="width: 100%; height: auto;">
+  <img src="assets/bench2drive.jpg" style="width: 100%; height: auto;">
 </h2>
 <h2 align="center">
 Bench2DriveZoo
 </h2>
 <h2 align="center">
-  <img src="asserts/bench2drivezoo.png" style="width: 100%; height: auto;">
+  <img src="assets/bench2drivezoo.png" style="width: 100%; height: auto;">
 </h2>
 
 
