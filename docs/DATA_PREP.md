@@ -2,7 +2,7 @@
 
 ## Download Bench2Drive
 
-Download our dataset from (LINK) and make sure the structure of data as follows:
+Download our dataset from ([LINK](https://github.com/Thinklab-SJTU/Bench2Drive)) and make sure the structure of data as follows:
 
 ```
     Bench2DriveZoo
