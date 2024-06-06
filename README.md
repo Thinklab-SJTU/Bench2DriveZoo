@@ -12,10 +12,9 @@ Bench2DriveZoo
 
 # Introduction
 
-- We implement training and open-loop evaluation for [BEVFormer](https://github.com/fundamentalvision/BEVFormer), [UniAD](https://github.com/OpenDriveLab/UniAD) , [VAD](https://github.com/hustvl/VAD) on [Bench2Drive](https://github.com/Thinklab-SJTU/Bench2Drive) dataset.
-- We completed the closed-loop evaluation process in Carla for Uniad and VAD on Bench2Drive.
-- We simplified the code framework by merging multiple dependencies like mmcv, mmseg, mmdet, and mmdet3d into a single library, and support the latest version of pytorch(2.3.1), which greatly facilitating installation and development.
-
+- This repo contains the training, open-loop evaluation, and closed-loop evaluation code for [BEVFormer](https://github.com/fundamentalvision/BEVFormer), [UniAD](https://github.com/OpenDriveLab/UniAD) , [VAD](https://github.com/hustvl/VAD) in [Bench2Drive](https://github.com/Thinklab-SJTU/Bench2Drive).
+- We merge multiple dependencies of UniAD and VAD including mmcv, mmseg, mmdet, and mmdet3d (v0.17.1) into a single library. As a result, it could support latest pytorch and advanced frameworks like deepspeed for acceleration.
+- Use "git checkout tcp/admlp" to obtain their corresponding training and evaluation code.
 
 
 # Getting Started
