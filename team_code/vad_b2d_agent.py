@@ -42,16 +42,16 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self.last_moving_step = -1
         self.last_steer = 0
         self.pidcontroller = PIDController() 
+        self.config_path = path_to_conf_file.split('+')[0]
+        self.ckpt_path = path_to_conf_file.split('+')[1]
         if IS_BENCH2DRIVE:
             self.save_name = path_to_conf_file.split('+')[-1]
-            self.config_path = path_to_conf_file.split('+')[0]
         else:
-            self.config_path = path_to_conf_file
             self.save_name = '_'.join(map(lambda x: '%02d' % x, (now.month, now.day, now.hour, now.minute, now.second)))
         self.step = -1
         self.wall_start = time.time()
         self.initialized = False
-        cfg = Config.fromfile('Bench2DriveZoo/adzoo/vad/configs/VAD/VAD_base_e2e_b2d.py')
+        cfg = Config.fromfile(self.config_path)
         if hasattr(cfg, 'plugin'):
             if cfg.plugin:
                 import importlib
@@ -67,21 +67,14 @@ class VadAgent(autonomous_agent.AutonomousAgent):
                     plg_lib = importlib.import_module(_module_path)  
   
         self.model = build_model(cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
-        checkpoint = load_checkpoint(self.model, self.config_path, map_location='cpu', strict=True)
+        checkpoint = load_checkpoint(self.model, self.ckpt_path, map_location='cpu', strict=True)
         self.model.cuda()
         self.model.eval()
         self.inference_only_pipeline = []
         for inference_only_pipeline in cfg.inference_only_pipeline:
             if inference_only_pipeline["type"] not in ['LoadMultiViewImageFromFilesInCeph','LoadMultiViewImageFromFiles']:
                 self.inference_only_pipeline.append(inference_only_pipeline)
-                
         self.inference_only_pipeline = Compose(self.inference_only_pipeline)
-        ckpt = torch.load(self.config_path)
-        ckpt = ckpt["state_dict"]
-        new_state_dict = OrderedDict()
-        for key, value in ckpt.items():
-            new_key = key.replace("model.","")
-            new_state_dict[new_key] = value
 
         self.takeover = False
         self.stop_time = 0
