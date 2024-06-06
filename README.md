@@ -8,6 +8,20 @@
     - [Hugging Face Link](https://huggingface.co/rethinklab/Bench2DriveZoo/tree/main)
     - [Baidu Cloud Link](https://pan.baidu.com/s/1RefJxk0B4kYcnf63Vi-ISA?pwd=1234)
 
+# Data Preprocess
+- TCP
+```bash
+    # need set YOUR_Data_PATH
+    python tools/gen_tcp_data.py
+```
+
+- ADMLP
+```bash
+    # need set YOUR_Data_PATH
+    python tools/gen_admlp_data.py
+```
+
+
 # Training
 First, set the dataset path in ``TCP/config.py`` or ``ADMLP/config.py``.
 Training:
