@@ -22,7 +22,7 @@ Bench2DriveZoo
 - [Installation](docs/INSTALL.md)
 - [Prepare Dataset](docs/INSTALL.md)
 - [Train and Open-Loop Eval](docs/TRAIN_EVAL.md)
-- [Closed-Loop Eval in Carla](docs/EVAL_IN_CARLA.md)
+- [Closed-Loop Eval in CARLA](docs/EVAL_IN_CARLA.md)
 - [Convert Codes from Nuscenes to Bench2Drive](docs/CONVERT_GUIDE.md)
 
 # Results and Pre-trained Models

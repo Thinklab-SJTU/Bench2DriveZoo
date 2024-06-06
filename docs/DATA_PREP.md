@@ -74,7 +74,7 @@ After installing and data preparing, the structure of our code will be as follow
     |           └── bench2drive_base_train_val_split.json  # trainval_split of Bench2Drive base 
     ├── docs/
     ├── mmcv/
-    ├── team_code/  # for Closed-loop Evaluation in Carla
+    ├── team_code/  # for Closed-loop Evaluation in CARLA
 ```
 
 

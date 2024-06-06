@@ -1,8 +1,8 @@
 ## Follow these steps to install the environment
 - **STEP 1: Create enviroment**
     ```
-    conda create -n uniad python=3.8
-    conda activate uniad
+    conda create -n b2d_zoo python=3.8
+    conda activate b2d_zoo
     ```
 - **STEP 2: Install cudatoolkit**
     ```
