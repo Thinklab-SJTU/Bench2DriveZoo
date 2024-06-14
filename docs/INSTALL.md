@@ -40,7 +40,7 @@
 - **STEP 8: Install CARLA for closed-loop evaluation.**
 
     ```
-    ## Ignore the line about downloading extracting CARLA if you have already do so or you do not intend to conduct closed-loop evaluation yet.
+    ## Ignore the line about downloading and extracting CARLA if you have already done so.
     mkdir carla
     cd carla
     wget https://carla-releases.s3.us-east-005.backblazeb2.com/Linux/CARLA_0.9.15.tar.gz
