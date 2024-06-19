@@ -56,7 +56,7 @@ You can use following commands to train and validate [BEVFormer](https://github.
 ### Train 
 
 ```bash
-./adzoo/vad/dist_test.sh ./adzoo/vad/configs/VAD/VAD_base_e2e_b2d.py ./ckpts/vad_b2d_base.pth 1
+./adzoo/vad/dist_train.sh ./adzoo/vad/configs/VAD/VAD_base_e2e_b2d.py ./ckpts/vad_b2d_base.pth 1
 ```
 
 ### Open loop eval
