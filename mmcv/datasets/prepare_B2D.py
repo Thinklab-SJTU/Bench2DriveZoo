@@ -25,25 +25,20 @@ NUM_OUTPOINT_SHRESHOLD = 7     # Filter bounding boxes where the number of verti
 CAMERAS = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT']
 CAMERA_TO_FOLDER_MAP = {'CAM_FRONT':'rgb_front', 'CAM_FRONT_LEFT':'rgb_front_left', 'CAM_FRONT_RIGHT':'rgb_front_right', 'CAM_BACK':'rgb_back', 'CAM_BACK_LEFT':'rgb_back_left', 'CAM_BACK_RIGHT':'rgb_back_right'}
 
-
 stand_to_ue4_rotate = np.array([[ 0, 0, 1, 0],
                                 [ 1, 0, 0, 0],
                                 [ 0,-1, 0, 0],
                                 [ 0, 0, 0, 1]])
 
-
-
 lidar_to_righthand_ego = np.array([[  0, 1, 0, 0],
-                                   [  -1, 0, 0, 0],
+                                   [ -1, 0, 0, 0],
                                    [  0, 0, 1, 0],
                                    [  0, 0, 0, 1]])
 
-lefthand_ego_to_lidar = np.array([[  0, 1, 0, 0],
-                                   [  1, 0, 0, 0],
-                                   [  0, 0, 1, 0],
-                                   [  0, 0, 0, 1]])
-
-
+lefthand_ego_to_lidar = np.array([[ 0, 1, 0, 0],
+                                  [ 1, 0, 0, 0],
+                                  [ 0, 0, 1, 0],
+                                  [ 0, 0, 0, 1]])
 
 left2right = np.eye(4)
 left2right[1,1] = -1
@@ -66,25 +61,25 @@ def get_npc2world(npc):
         if key in npc.keys():
             npc2world = np.linalg.inv(np.array(npc[key]))
             yaw_from_matrix = np.arctan2(npc2world[1,0], npc2world[0,0])
-            yaw = npc['rotation'][-1]/180*np.pi
+            yaw = npc['rotation'][-1] / 180 * np.pi
             if abs(yaw-yaw_from_matrix)> 0.01:
                 npc2world[0:3,0:3] = Quaternion(axis=[0, 0, 1], radians=yaw).rotation_matrix
-            npc2world =  left2right@npc2world@left2right
+            npc2world = left2right @ npc2world @ left2right
             return npc2world
     npc2world = np.eye(4)
     npc2world[0:3,0:3] = Quaternion(axis=[0, 0, 1], radians=npc['rotation'][-1]/180*np.pi).rotation_matrix
     npc2world[0:3,3] = np.array(npc['location'])
-    return left2right@npc2world@left2right
+    return left2right @ npc2world @ left2right
 
 
 def get_global_trigger_vertex(center,extent,yaw_in_degree):
     x,y = center[0],-center[1]
     dx,dy = extent[0],extent[1]
     yaw_in_radians = -yaw_in_degree/180*np.pi
-    vertex_in_self = np.array([[dx,dy],
-                               [-dx,dy],
+    vertex_in_self = np.array([[ dx, dy],
+                               [-dx, dy],
                                [-dx,-dy],
-                               [dx,-dy]])
+                               [ dx,-dy]])
     rotate_matrix = np.array([[np.cos(yaw_in_radians),-np.sin(yaw_in_radians)],
                               [np.sin(yaw_in_radians), np.cos(yaw_in_radians)]])
     rotated_vertex = (rotate_matrix @ vertex_in_self.T).T
@@ -167,7 +162,7 @@ def gengrate_map(map_root):
                     if lane_id == 'Trigger_Volumes':
                         for single_trigger_volume in lane:
                             points = np.array(single_trigger_volume['Points'])
-                            points[:,1] *= -1
+                            points[:,1] *= -1 #left2right
                             trigger_volumes_points.append(points)
                             trigger_volumes_sample_points.append(points.mean(axis=0))
                             trigger_volumes_types.append(single_trigger_volume['Type'])
@@ -178,7 +173,7 @@ def gengrate_map(map_root):
                             lane_points.append(points)
                             lane_types.append(single_lane['Type'])
                             lane_lenth = points.shape[0]
-                            if lane_lenth % 50 !=0:
+                            if lane_lenth % 50 != 0:
                                 devide_points = [50*i for i in range(lane_lenth//50+1)]
                             else:
                                 devide_points = [50*i for i in range(lane_lenth//50)]
@@ -226,7 +221,7 @@ def preprocess(folder_list,idx,tmp_dir,train_or_val):
             frame_data['ego_accel'] = np.array([anno['acceleration'][0],-anno['acceleration'][1],anno['acceleration'][2]])
             frame_data['ego_rotation_rate'] = -np.array(anno['angular_velocity'])
             frame_data['ego_size'] = np.array([anno['bounding_boxes'][0]['extent'][1],anno['bounding_boxes'][0]['extent'][0],anno['bounding_boxes'][0]['extent'][2]])*2
-            world2ego = left2right@anno['bounding_boxes'][0]['world2ego']@left2right
+            world2ego = left2right @ anno['bounding_boxes'][0]['world2ego'] @ left2right
             frame_data['world2ego'] = world2ego
             if frame_data['frame_idx'] == 0:
                 expert_file_path = join(folder_path,'expert_assessment','-0001.npz')
@@ -247,13 +242,13 @@ def preprocess(folder_list,idx,tmp_dir,train_or_val):
             sensor_infos = {}
             for cam in CAMERAS:
                 sensor_infos[cam] = {}
-                sensor_infos[cam]['cam2ego'] =  left2right @ np.array(anno['sensors'][cam]['cam2ego']) @stand_to_ue4_rotate 
+                sensor_infos[cam]['cam2ego'] = left2right @ np.array(anno['sensors'][cam]['cam2ego']) @ stand_to_ue4_rotate 
                 sensor_infos[cam]['intrinsic'] = np.array(anno['sensors'][cam]['intrinsic'])
                 sensor_infos[cam]['world2cam'] = np.linalg.inv(stand_to_ue4_rotate) @ np.array(anno['sensors'][cam]['world2cam']) @left2right
                 sensor_infos[cam]['data_path'] = join(folder_name,'camera',CAMERA_TO_FOLDER_MAP[cam],ann_name.split('.')[0]+'.jpg')
                 cam_gray_depth[cam] = cv2.imread(join(data_root,sensor_infos[cam]['data_path']).replace('rgb_','depth_').replace('.jpg','.png'))[:,:,0]
             sensor_infos['LIDAR_TOP'] = {}
-            sensor_infos['LIDAR_TOP']['lidar2ego'] =   np.array(anno['sensors']['LIDAR_TOP']['lidar2ego']) @ lidar_to_righthand_ego
+            sensor_infos['LIDAR_TOP']['lidar2ego'] = left2right @ np.array(anno['sensors']['LIDAR_TOP']['lidar2ego']) @ left2right @ lidar_to_righthand_ego
             world2lidar = lefthand_ego_to_lidar @ np.array(anno['sensors']['LIDAR_TOP']['world2lidar']) @ left2right
             sensor_infos['LIDAR_TOP']['world2lidar'] = world2lidar
             frame_data['sensors'] = sensor_infos
@@ -271,9 +266,9 @@ def preprocess(folder_list,idx,tmp_dir,train_or_val):
                 extent = np.array([npc['extent'][1],npc['extent'][0],npc['extent'][2]])  # lwh -> wlh
                 position_dict[npc['id']] = center
                 local_center = apply_trans(center, world2lidar)
-                size = extent*2 
+                size = extent * 2 
                 if 'world2vehicle' in npc.keys():
-                    world2vehicle = left2right@np.array(npc['world2vehicle'])@left2right
+                    world2vehicle = left2right @ np.array(npc['world2vehicle'])@left2right
                     vehicle2lidar = world2lidar @ np.linalg.inv(world2vehicle) 
                     yaw_local = np.arctan2(vehicle2lidar[1,0], vehicle2lidar[0,0])
 
