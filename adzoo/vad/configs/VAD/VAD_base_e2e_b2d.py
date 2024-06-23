@@ -544,6 +544,7 @@ optimizer = dict(
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 lr_config = dict(
+    by_epoch=False,
     policy='CosineAnnealing',
     warmup='linear',
     warmup_iters=500,
@@ -555,7 +556,7 @@ evaluation = dict(interval=total_epochs, pipeline=test_pipeline, metric='bbox', 
 runner = dict(type='EpochBasedRunner', max_epochs=total_epochs)
 
 log_config = dict(
-    interval=1,
+    interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook')
