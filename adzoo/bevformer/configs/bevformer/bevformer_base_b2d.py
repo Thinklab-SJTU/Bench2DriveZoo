@@ -199,7 +199,7 @@ model = dict(
                         )
                     ],
                     feedforward_channels=_ffn_dim_,
-                    ffn_dropout=0.1,
+                    ffn_dropout=0.0,
                     operation_order=('self_attn', 'norm', 'cross_attn', 'norm',
                                      'ffn', 'norm'))),
             decoder=dict(
@@ -213,7 +213,7 @@ model = dict(
                             type='MultiheadAttention',
                             embed_dims=_dim_,
                             num_heads=8,
-                            dropout=0.1),
+                            dropout=0.0),
                          dict(
                             type='CustomMSDeformableAttention',
                             embed_dims=_dim_,
@@ -221,7 +221,7 @@ model = dict(
                     ],
 
                     feedforward_channels=_ffn_dim_,
-                    ffn_dropout=0.1,
+                    ffn_dropout=0.0,
                     operation_order=('self_attn', 'norm', 'cross_attn', 'norm',
                                      'ffn', 'norm')))),
         bbox_coder=dict(
@@ -348,7 +348,7 @@ lr_config = dict(
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
     min_lr_ratio=1e-3)
-total_epochs = 24
+total_epochs = 2
 evaluation = dict(interval=1, pipeline=test_pipeline)
 
 runner = dict(type='EpochBasedRunner', max_epochs=total_epochs)
