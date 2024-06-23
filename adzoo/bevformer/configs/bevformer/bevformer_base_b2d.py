@@ -343,6 +343,7 @@ optimizer = dict(
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 lr_config = dict(
+    by_epoch=False,
     policy='CosineAnnealing',
     warmup='linear',
     warmup_iters=500,
