@@ -137,7 +137,7 @@ _num_levels_ = 4
 bev_h_ = 200
 bev_w_ = 200
 queue_length = 4 # each sequence contains `queue_length` frames.
-total_epochs = 60
+total_epochs = 6
 
 model = dict(
     type='VAD',
@@ -185,10 +185,10 @@ model = dict(
                         type='MultiheadAttention',
                         embed_dims=_dim_,
                         num_heads=8,
-                        dropout=0.1),
+                        dropout=0.0),
                 ],
                 feedforward_channels=_ffn_dim_,
-                ffn_dropout=0.1,
+                ffn_dropout=0.0,
                 operation_order=('cross_attn', 'norm', 'ffn', 'norm'))),
         ego_map_decoder=dict(
             type='CustomTransformerDecoder',
@@ -201,10 +201,10 @@ model = dict(
                         type='MultiheadAttention',
                         embed_dims=_dim_,
                         num_heads=8,
-                        dropout=0.1),
+                        dropout=0.0),
                 ],
                 feedforward_channels=_ffn_dim_,
-                ffn_dropout=0.1,
+                ffn_dropout=0.0,
                 operation_order=('cross_attn', 'norm', 'ffn', 'norm'))),
         motion_decoder=dict(
             type='CustomTransformerDecoder',
@@ -217,10 +217,10 @@ model = dict(
                         type='MultiheadAttention',
                         embed_dims=_dim_,
                         num_heads=8,
-                        dropout=0.1),
+                        dropout=0.0),
                 ],
                 feedforward_channels=_ffn_dim_,
-                ffn_dropout=0.1,
+                ffn_dropout=0.0,
                 operation_order=('cross_attn', 'norm', 'ffn', 'norm'))),
         motion_map_decoder=dict(
             type='CustomTransformerDecoder',
@@ -233,10 +233,10 @@ model = dict(
                         type='MultiheadAttention',
                         embed_dims=_dim_,
                         num_heads=8,
-                        dropout=0.1),
+                        dropout=0.0),
                 ],
                 feedforward_channels=_ffn_dim_,
-                ffn_dropout=0.1,
+                ffn_dropout=0.0,
                 operation_order=('cross_attn', 'norm', 'ffn', 'norm'))),
         use_pe=True,
         bev_h=bev_h_,
@@ -290,7 +290,7 @@ model = dict(
                         )
                     ],
                     feedforward_channels=_ffn_dim_,
-                    ffn_dropout=0.1,
+                    ffn_dropout=0.0,
                     operation_order=('self_attn', 'norm', 'cross_attn', 'norm',
                                      'ffn', 'norm'))),
             decoder=dict(
@@ -304,14 +304,14 @@ model = dict(
                             type='MultiheadAttention',
                             embed_dims=_dim_,
                             num_heads=8,
-                            dropout=0.1),
+                            dropout=0.0),
                         dict(
                             type='CustomMSDeformableAttention',
                             embed_dims=_dim_,
                             num_levels=1),
                     ],
                     feedforward_channels=_ffn_dim_,
-                    ffn_dropout=0.1,
+                    ffn_dropout=0.0,
                     operation_order=('self_attn', 'norm', 'cross_attn', 'norm',
                                      'ffn', 'norm'))),
             map_decoder=dict(
@@ -325,14 +325,14 @@ model = dict(
                             type='MultiheadAttention',
                             embed_dims=_dim_,
                             num_heads=8,
-                            dropout=0.1),
+                            dropout=0.0),
                          dict(
                             type='CustomMSDeformableAttention',
                             embed_dims=_dim_,
                             num_levels=1),
                     ],
                     feedforward_channels=_ffn_dim_,
-                    ffn_dropout=0.1,
+                    ffn_dropout=0.0,
                     operation_order=('self_attn', 'norm', 'cross_attn', 'norm',
                                      'ffn', 'norm')))),
         bbox_coder=dict(
