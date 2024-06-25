@@ -77,14 +77,6 @@ def custom_multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False):
             else:
                 batch_size = len(result)
                 bbox_results.extend(result)
-
-            if i>150:
-                break
-
-            #if isinstance(result[0], tuple):
-            #    assert False, 'this code is for instance segmentation, which our code will not utilize.'
-            #    result = [(bbox_results, encode_mask_results(mask_results))
-            #              for bbox_results, mask_results in result]
         if rank == 0:
             
             for _ in range(batch_size * world_size):
