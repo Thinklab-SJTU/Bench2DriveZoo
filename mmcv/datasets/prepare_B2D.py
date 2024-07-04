@@ -357,7 +357,7 @@ def preprocess(folder_list,idx,tmp_dir,train_or_val):
 def generate_infos(folder_list,workers,train_or_val,tmp_dir):
 
     folder_num = len(folder_list)
-    devide_list = [(folder_num//workers)*i for i in range(folder_num)]
+    devide_list = [(folder_num//workers)*i for i in range(workers)]
     devide_list.append(folder_num)
     for i in range(workers):
         sub_folder_list = folder_list[devide_list[i]:devide_list[i+1]]
@@ -386,8 +386,14 @@ if __name__ == "__main__":
     process_list = []
     with open('../../data/splits/bench2drive_base_train_val_split.json','r') as f:
         train_val_split = json.load(f)
+        
+    all_folder = os.listdir(join(DATAROOT,'v1'))
+    train_list = []
+    for foldername in all_folder:
+        if 'Town' in foldername and 'Route' in foldername and 'Weather' in foldername and not join('v1',foldername) in train_val_split['val']:
+            train_list.append(join('v1',foldername))   
     print('processing train data...')
-    generate_infos(train_val_split['train'],workers,'train',args.tmp_dir)
+    generate_infos(train_list,workers,'train',args.tmp_dir)
     process_list = []
     print('processing val data...')
     generate_infos(train_val_split['val'],workers,'val',args.tmp_dir)
