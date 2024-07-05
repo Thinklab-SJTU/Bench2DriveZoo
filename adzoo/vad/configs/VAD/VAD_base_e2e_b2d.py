@@ -493,10 +493,9 @@ data = dict(
         #custom_eval_version='vad_nusc_detection_cvpr_2019'
         ),
     val=dict(type=dataset_type,
-
             data_root=data_root,
-            ann_file=ann_file_train,
-            pipeline=train_pipeline,
+            ann_file=ann_file_val,
+            pipeline=test_pipeline,
             classes=class_names,
             name_mapping=NameMapping,
             map_root=map_root,
@@ -508,8 +507,7 @@ data = dict(
             future_frames=future_frames,
             point_cloud_range=point_cloud_range,
             polyline_points_num=map_fixed_ptsnum_per_gt_line,
-            #use_pkl_result=True,
-            #custom_eval_version='vad_nusc_detection_cvpr_2019'
+            eval_cfg=eval_cfg
             ),
     test=dict(type=dataset_type,
             data_root=data_root,
