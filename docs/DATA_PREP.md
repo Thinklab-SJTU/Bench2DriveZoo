@@ -36,7 +36,8 @@ python prepare_B2D.py --workers 16   # workers used to prepare data
 ```
 
 The command will generate `b2d_infos_train.pkl`, `b2d_infos_val.pkl`, `b2d_map_infos.pkl` under `data/infos`.
-*Note: It will take about 1 hour to generate all the data with 16 workers*
+
+*Note: This command will be by default use all routes except those in data/splits/bench2drive_base_train_val_split.json as the training set.  It will take about 1 hour to generate all the data with 16 workers for Base set (1000 clips).*
 
 
 ## Structure of code
