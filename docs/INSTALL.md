@@ -1,6 +1,7 @@
 ## Follow these steps to install the environment
 - **STEP 1: Create enviroment**
     ```
+    ## python3.8 should be strictly followed.
     conda create -n b2d_zoo python=3.8
     conda activate b2d_zoo
     ```
