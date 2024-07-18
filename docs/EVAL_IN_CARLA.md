@@ -4,7 +4,7 @@ Please follow these steps to evaluate UniAD and VAD in CARLA:
 
 ## Preparations
 
-- Install this repo as [doc](docs/INSTALL.md). 
+- Install this repo as [doc](./INSTALL.md). 
 - Clone Bench2Drive evaluation tools from [here](https://github.com/Thinklab-SJTU/Bench2Drive) and prepare CARLA For it.
 
 ## Link this repo to Bench2Drive
