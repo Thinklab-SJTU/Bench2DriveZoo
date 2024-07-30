@@ -358,7 +358,7 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
   
         ego2world = np.eye(4)
         ego2world[0:3,0:3] = Quaternion(axis=[0, 0, 1], radians=ego_theta).rotation_matrix
-        ego2world[0:3,0:2] = can_bus[0:2]
+        ego2world[0:2,3] = can_bus[0:2]
         lidar2global = ego2world @ self.lidar2ego
         results['l2g_r_mat'] = lidar2global[0:3,0:3]
         results['l2g_t'] = lidar2global[0:3,3]
