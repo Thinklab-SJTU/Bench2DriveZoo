@@ -11,10 +11,6 @@ plugin_dir = 'projects/mmdet3d_plugin/'
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 voxel_size = [0.2, 0.2, 8]
 
-
-
-
-
 NameMapping = {
     #=================vehicle=================
     # bicycle
@@ -22,6 +18,7 @@ NameMapping = {
     "vehicle.diamondback.century": 'bicycle',
     "vehicle.gazelle.omafiets": 'bicycle',
     # car
+    "vehicle.audi.etron": 'car',
     "vehicle.chevrolet.impala": 'car',
     "vehicle.dodge.charger_2020": 'car',
     "vehicle.dodge.charger_police": 'car',
@@ -77,19 +74,30 @@ NameMapping = {
 
     #=================pedestrian==============
     "walker.pedestrian.0001": 'pedestrian',
+    "walker.pedestrian.0003": 'pedestrian',
     "walker.pedestrian.0004": 'pedestrian',
     "walker.pedestrian.0005": 'pedestrian',
     "walker.pedestrian.0007": 'pedestrian',
+    "walker.pedestrian.0010": 'pedestrian',
     "walker.pedestrian.0013": 'pedestrian',
     "walker.pedestrian.0014": 'pedestrian',
+    "walker.pedestrian.0015": 'pedestrian',
+    "walker.pedestrian.0016": 'pedestrian',
     "walker.pedestrian.0017": 'pedestrian',
     "walker.pedestrian.0018": 'pedestrian',
     "walker.pedestrian.0019": 'pedestrian',
     "walker.pedestrian.0020": 'pedestrian',
+    "walker.pedestrian.0021": 'pedestrian',
     "walker.pedestrian.0022": 'pedestrian',
     "walker.pedestrian.0025": 'pedestrian',
+    "walker.pedestrian.0027": 'pedestrian',
+    "walker.pedestrian.0030": 'pedestrian',
+    "walker.pedestrian.0031": 'pedestrian',
+    "walker.pedestrian.0032": 'pedestrian',
+    "walker.pedestrian.0034": 'pedestrian',
     "walker.pedestrian.0035": 'pedestrian',
     "walker.pedestrian.0041": 'pedestrian',
+    "walker.pedestrian.0042": 'pedestrian',
     "walker.pedestrian.0046": 'pedestrian',
     "walker.pedestrian.0047": 'pedestrian',
 
@@ -97,9 +105,6 @@ NameMapping = {
     "static.prop.dirtdebris01": 'others',
     "static.prop.dirtdebris02": 'others',
 }
-
-
-
 
 eval_cfg = {
             "dist_ths": [0.5, 1.0, 2.0, 4.0],
