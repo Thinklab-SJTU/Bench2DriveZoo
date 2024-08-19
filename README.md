@@ -43,9 +43,14 @@ Bench2DriveZoo
 | BEVFormer-Base | 0.63 | 0.67  | [config](adzoo/bevformer/configs/bevformer/bevformer_base_b2d.py) | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/bevformer_base_b2d.pth)/[Baidu Cloud](https://pan.baidu.com/s/1Y4VkE1gc8BU0zJ4z2fmIkQ?pwd=1234) |
 
 
+# Failure Cases Analysis
+
+We provide some visualization videos and qualitatively analysis for TCP-traj, UniAD-Base, VAD-Base at [here](analysis/analysis.md).
+
 # Related Resources
 
 - [Bench2Drive](https://github.com/Thinklab-SJTU/Bench2Drive)
 - [BEVFormer](https://github.com/fundamentalvision/BEVFormer)
 - [UniAD](https://github.com/OpenDriveLab/UniAD) 
 - [VAD](https://github.com/hustvl/VAD)
+
