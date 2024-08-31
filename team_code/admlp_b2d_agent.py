@@ -102,6 +102,7 @@ class ADMLPAgent(autonomous_agent.AutonomousAgent):
 		self._route_planner = RoutePlanner(4.0, 50.0, lat_ref=self.lat_ref, lon_ref=self.lon_ref)
 		self._route_planner.set_route(self._global_plan, True)
 		self.initialized = True
+		self.metric_info = {}
 
 	def sensors(self):
 		sensors =  [
@@ -289,14 +290,16 @@ class ADMLPAgent(autonomous_agent.AutonomousAgent):
 			control.brake = 1.0
 		if control.brake > 0.5:
 			control.throttle = float(0)
-			
-		if SAVE_PATH is not None and (self.step -  self.data_queue_len) % 10 == 0:
+		
+		metric_info = self.get_metric_info()
+		self.metric_info[self.step] = metric_info
+		if SAVE_PATH is not None and (self.step -  self.data_queue_len) % 1 == 0:
 			self.save(tick_data)
 		self.last_control = control
 		return control
 
 	def save(self, tick_data):
-		frame = self.step // 10
+		frame = self.step
 
 		Image.fromarray(tick_data['rgb']).save(self.save_path / 'rgb' / ('%04d.png' % frame))
 
@@ -304,6 +307,11 @@ class ADMLPAgent(autonomous_agent.AutonomousAgent):
 
 		outfile = open(self.save_path / 'meta' / ('%04d.json' % frame), 'w')
 		json.dump(self.pid_metadata, outfile, indent=4)
+		outfile.close()
+
+		# metric info
+		outfile = open(self.save_path / 'metric_info.json', 'w')
+		json.dump(self.metric_info, outfile, indent=4)
 		outfile.close()
 
 	def destroy(self):
