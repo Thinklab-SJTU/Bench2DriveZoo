@@ -189,6 +189,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self._route_planner = RoutePlanner(4.0, 50.0, lat_ref=self.lat_ref, lon_ref=self.lon_ref)
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
+        self.metric_info = {}
   
   
 
@@ -412,7 +413,9 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self.pid_metadata['command'] = command
         self.pid_metadata['all_plan'] = all_out_truck.tolist()
 
-        if SAVE_PATH is not None and self.step % 10 == 0:
+        metric_info = self.get_metric_info()
+        self.metric_info[self.step] = metric_info
+        if SAVE_PATH is not None and self.step % 1 == 0:
             self.save(tick_data)
         self.prev_control = control
         
@@ -435,6 +438,11 @@ class VadAgent(autonomous_agent.AutonomousAgent):
 
         outfile = open(self.save_path / 'meta' / ('%04d.json' % frame), 'w')
         json.dump(self.pid_metadata, outfile, indent=4)
+        outfile.close()
+
+        # metric info
+        outfile = open(self.save_path / 'metric_info.json', 'w')
+        json.dump(self.metric_info, outfile, indent=4)
         outfile.close()
 
     def destroy(self):

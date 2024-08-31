@@ -186,8 +186,7 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         self._route_planner = RoutePlanner(4.0, 50.0, lat_ref=self.lat_ref, lon_ref=self.lon_ref)
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
-  
-  
+        self.metric_info = {}
 
     def sensors(self):
         sensors =[
@@ -393,7 +392,9 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         self.pid_metadata['throttle_traj'] = float(throttle_traj)
         self.pid_metadata['brake_traj'] = float(brake_traj)
         self.pid_metadata['plan'] = out_truck.tolist()
-        if SAVE_PATH is not None and self.step % 10 == 0:
+        metric_info = self.get_metric_info()
+        self.metric_info[self.step] = metric_info
+        if SAVE_PATH is not None and self.step % 1 == 0:
             self.save(tick_data)
         self.prev_control = control
         return control
@@ -409,6 +410,11 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         Image.fromarray(tick_data['bev']).save(self.save_path / 'bev' / ('%04d.png' % frame))
         outfile = open(self.save_path / 'meta' / ('%04d.json' % frame), 'w')
         json.dump(self.pid_metadata, outfile, indent=4)
+        outfile.close()
+
+        # metric info
+        outfile = open(self.save_path / 'metric_info.json', 'w')
+        json.dump(self.metric_info, outfile, indent=4)
         outfile.close()
 
     def destroy(self):
