@@ -45,7 +45,7 @@ Bench2DriveZoo
 
 # Failure Cases Analysis
 
-We provide some visualization videos and qualitatively analysis for TCP-traj, UniAD-Base, VAD-Base at [here](analysis/analysis.md).
+We provide some visualization videos and qualitatively analysis for TCP-traj, UniAD-Base, VAD-Base at [here](analysis/analysis.md).  You may refer to https://github.com/Thinklab-SJTU/Bench2DriveZoo/blob/uniad/vad/team_code/vad_b2d_agent_visualize.py to write your own visualization code.
 
 # Related Resources
 
