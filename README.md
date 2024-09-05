@@ -29,11 +29,14 @@ Bench2DriveZoo
 
 ## UniAD and VAD
 
-| Method | L2 (m) 2s | Driving Score | Success Rate(%) | Config | Download |
-| :---: | :---: | :---: | :---: |  :---: |:---: |
-| UniAD-Tiny |0.80 | 32.00  |  9.54 | [config](adzoo/uniad/configs/stage2_e2e/base_e2e_b2d.py) | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/bevformer_tiny_b2d.pth)/[Baidu Cloud](https://pan.baidu.com/s/1psr7AKYHD7CitZ30Bz-9sA?pwd=1234 )|
-| UniAD-Base |0.73 | 37.72  |  9.54 | [config](adzoo/uniad/configs/stage2_e2e/tiny_e2e_b2d.py) | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/uniad_base_b2d.pth)/[Baidu Cloud](https://pan.baidu.com/s/11p9IUGqTax1f4W_qsdLCRw?pwd=1234) |
-| VAD        |0.91 | 39.42  | 10.00 | [config](adzoo/vad/configs/VAD/VAD_base_e2e_b2d.py) | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/vad_b2d_base.pth)/[Baidu Cloud](https://pan.baidu.com/s/1rK7Z_D-JsA7kBJmEUcMMyg?pwd=1234) |
+As stated in the [news](https://github.com/Thinklab-SJTU/Bench2Drive) at 2024/08/27, there are several fixed bugs and changed protocols. Thus, the old version of closed-loop performance is deprecated.
+
+
+| Method | L2 (m) 2s | Driving Score | Success Rate(%) | Config | Download | Eval Json|
+| :---: | :---: | :---: | :---: |  :---: | :---: | :---: |
+| UniAD-Tiny |0.80 | 40.73 (deprecated 32.00)  |  13.18 (deprecated 9.54) | [config](adzoo/uniad/configs/stage2_e2e/base_e2e_b2d.py) | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/bevformer_tiny_b2d.pth)/[Baidu Cloud](https://pan.baidu.com/s/1psr7AKYHD7CitZ30Bz-9sA?pwd=1234 )| [New Version](analysis/UniAD-Tiny.json) |
+| UniAD-Base |0.73 | 45.81 (deprecated  37.72)  |  16.36 (deprecated 9.54) | [config](adzoo/uniad/configs/stage2_e2e/tiny_e2e_b2d.py) | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/uniad_base_b2d.pth)/[Baidu Cloud](https://pan.baidu.com/s/11p9IUGqTax1f4W_qsdLCRw?pwd=1234) | [New Version](analysis/UniAD-Base.json) |
+| VAD        |0.91 | 42.35 (deprecated 39.42)  | 15.00 (deprecated 10.00) | [config](adzoo/vad/configs/VAD/VAD_base_e2e_b2d.py) | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/vad_b2d_base.pth)/[Baidu Cloud](https://pan.baidu.com/s/1rK7Z_D-JsA7kBJmEUcMMyg?pwd=1234) | [New Version](analysis/VAD.json) |
 
 ## BEVFormer
 
