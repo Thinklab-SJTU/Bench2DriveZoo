@@ -8,6 +8,9 @@
     - [Hugging Face Link](https://huggingface.co/rethinklab/Bench2DriveZoo/tree/main)
     - [Baidu Cloud Link](https://pan.baidu.com/s/1RefJxk0B4kYcnf63Vi-ISA?pwd=1234)
 
+# Eval Json
+- [TCP-only-traj](TCP/TCP-only-traj.json)
+
 # Data Preprocess
 - TCP
 ```bash
