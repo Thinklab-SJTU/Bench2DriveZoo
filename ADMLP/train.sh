@@ -1,0 +1,2 @@
+export PYTHONPATH=$PYTHONPATH:YOUR_PATH/Bench2DriveZoo/ADMLP
+CUDA_VISIBLE_DEVICES=0 python ADMLP/train.py --gpus 1

@@ -106,35 +106,35 @@ class ADMLPAgent(autonomous_agent.AutonomousAgent):
 
 	def sensors(self):
 		sensors =  [
-                {
-                    'type': 'sensor.camera.rgb',
-                    'x': 0.80, 'y': 0.0, 'z': 1.60,
-                    'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-                    'width': 1600, 'height': 900, 'fov': 70,
-                    'id': 'CAM_FRONT'
-                    },
-                # imu
-                {
-                    'type': 'sensor.other.imu',
-                    'x': -1.4, 'y': 0.0, 'z': 0.0,
-                    'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-                    'sensor_tick': 0.05,
-                    'id': 'IMU'
-                    },
-                # gps
-                {
-                    'type': 'sensor.other.gnss',
-                    'x': -1.4, 'y': 0.0, 'z': 0.0,
-                    'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-                    'sensor_tick': 0.01,
-                    'id': 'GPS'
-                    },
-                # speed
-                {
-                    'type': 'sensor.speedometer',
-                    'reading_frequency': 20,
-                    'id': 'SPEED'
-                    },
+				{
+					'type': 'sensor.camera.rgb',
+					'x': 0.80, 'y': 0.0, 'z': 1.60,
+					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
+					'width': 1600, 'height': 900, 'fov': 70,
+					'id': 'CAM_FRONT'
+					},
+				# imu
+				{
+					'type': 'sensor.other.imu',
+					'x': -1.4, 'y': 0.0, 'z': 0.0,
+					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
+					'sensor_tick': 0.05,
+					'id': 'IMU'
+					},
+				# gps
+				{
+					'type': 'sensor.other.gnss',
+					'x': -1.4, 'y': 0.0, 'z': 0.0,
+					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
+					'sensor_tick': 0.01,
+					'id': 'GPS'
+					},
+				# speed
+				{
+					'type': 'sensor.speedometer',
+					'reading_frequency': 20,
+					'id': 'SPEED'
+					},
 				]
 		
 		if IS_BENCH2DRIVE:
@@ -234,7 +234,7 @@ class ADMLPAgent(autonomous_agent.AutonomousAgent):
 		local_command_point = np.array([next_wp_x-ego_x, next_wp_y-ego_y])
 		local_command_point = R.dot(local_command_point)
 		target_point = tuple(local_command_point)
-        # VOID = -1
+		# VOID = -1
 		# LEFT = 1
 		# RIGHT = 2
 		# STRAIGHT = 3
@@ -319,7 +319,7 @@ class ADMLPAgent(autonomous_agent.AutonomousAgent):
 		torch.cuda.empty_cache()
 
 	def gps_to_location(self, gps):
-        # gps content: numpy array: [lat, lon, alt]
+		# gps content: numpy array: [lat, lon, alt]
 		lat, lon = gps
 		scale = math.cos(self.lat_ref * math.pi / 180.0)
 		my = math.log(math.tan((lat+90) * math.pi / 360.0)) * (EARTH_RADIUS_EQUA * scale)

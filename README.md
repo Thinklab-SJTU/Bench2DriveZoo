@@ -31,16 +31,24 @@ Training:
 ```bash
     cd Bench2Drive-Zoo/
     # TCP
+    export PYTHONPATH=$PYTHONPATH:PATH_TO_TCP
     python TCP/train.py --gpus NUM_OF_GPUS
+    # or
+    bash TCP/train.sh # need set your PATH_TO_TCP
     # ADMLP
+    export PYTHONPATH=$PYTHONPATH:PATH_TO_ADMLP
     python ADMLP/train.py --gpus NUM_OF_GPUS
+    # or
+    bash ADMLP/train.sh # need set your PATH_TO_ADMLP
 ```
 
 # Open Loop Evaluation
 ```bash
     # TCP
+    export PYTHONPATH=$PYTHONPATH:PATH_TO_TCP
     python TCP/test.py
     # ADMLP
+    export PYTHONPATH=$PYTHONPATH:PATH_TO_ADMLP
     python ADMLP/test.py
 ```
 

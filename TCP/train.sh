@@ -1,0 +1,2 @@
+export PYTHONPATH=$PYTHONPATH:YOUR_PATH/Bench2DriveZoo/TCP
+CUDA_VISIBLE_DEVICES=0 python TCP/train.py --gpus 1

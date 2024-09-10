@@ -1,18 +1,13 @@
 import argparse
 import os
 from collections import OrderedDict
-
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from torch.distributions import Beta
-
-
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import DDPPlugin
-
+from pytorch_lightning.strategies import DDPStrategy
 from TCP.model import TCP
 from TCP.data import CARLA_Data
 from TCP.config import GlobalConfig
@@ -24,14 +19,6 @@ class TCP_planner(pl.LightningModule):
         self.lr = lr
         self.config = config
         self.model = TCP(config)
-        # self._load_weight()
-
-    # def _load_weight(self):
-    # 	rl_state_dict = torch.load(self.config.rl_ckpt, map_location='cpu')['policy_state_dict']
-    # 	self._load_state_dict(self.model.value_branch_traj, rl_state_dict, 'value_head')
-    # 	self._load_state_dict(self.model.value_branch_ctrl, rl_state_dict, 'value_head')
-    # 	self._load_state_dict(self.model.dist_mu, rl_state_dict, 'dist_mu')
-    # 	self._load_state_dict(self.model.dist_sigma, rl_state_dict, 'dist_sigma')
 
     def _load_state_dict(self, il_net, rl_state_dict, key_word):
         rl_keys = [k for k in rl_state_dict.keys() if key_word in k]
@@ -59,10 +46,6 @@ class TCP_planner(pl.LightningModule):
 
         pred = self.model(front_img, state, target_point)
         action_loss = F.nll_loss(F.log_softmax(pred['action_index'], dim=1), batch['action_index'])
-        # dist_sup = Beta(batch['action_mu'], batch['action_sigma'])
-        # dist_pred = Beta(pred['mu_branches'], pred['sigma_branches'])
-        # kl_div = torch.distributions.kl_divergence(dist_sup, dist_pred)
-        # action_loss = torch.mean(kl_div[:, 0]) *0.5 + torch.mean(kl_div[:, 1]) *0.5
         speed_loss = F.l1_loss(pred['pred_speed'], speed) * self.config.speed_weight
         value_loss = (F.mse_loss(pred['pred_value_traj'], value) + F.mse_loss(pred['pred_value_ctrl'], value)) * self.config.value_weight
         feature_loss = (F.mse_loss(pred['pred_features_traj'], feature) +F.mse_loss(pred['pred_features_ctrl'], feature))* self.config.features_weight
@@ -70,10 +53,6 @@ class TCP_planner(pl.LightningModule):
         future_feature_loss = 0
         future_action_loss = 0
         for i in range(self.config.pred_len):
-            # dist_sup = Beta(batch['future_action_mu'][i], batch['future_action_sigma'][i])
-            # dist_pred = Beta(pred['future_mu'][i], pred['future_sigma'][i])
-            # kl_div = torch.distributions.kl_divergence(dist_sup, dist_pred)
-            # future_action_loss += torch.mean(kl_div[:, 0]) *0.5 + torch.mean(kl_div[:, 1]) *0.5
             action_loss = F.nll_loss(F.log_softmax(pred['future_action_index'][i], dim=1), batch['future_action_index'][i])
             future_action_loss += action_loss
             future_feature_loss += F.mse_loss(pred['future_feature'][i], batch['future_feature'][i]) * self.config.features_weight
@@ -112,10 +91,6 @@ class TCP_planner(pl.LightningModule):
 
         pred = self.model(front_img, state, target_point)
         action_loss = F.nll_loss(F.log_softmax(pred['action_index'], dim=1), batch['action_index'])
-        # dist_sup = Beta(batch['action_mu'], batch['action_sigma'])
-        # dist_pred = Beta(pred['mu_branches'], pred['sigma_branches'])
-        # kl_div = torch.distributions.kl_divergence(dist_sup, dist_pred)
-        # action_loss = torch.mean(kl_div[:, 0]) *0.5 + torch.mean(kl_div[:, 1]) *0.5
         speed_loss = F.l1_loss(pred['pred_speed'], speed) * self.config.speed_weight
         value_loss = (F.mse_loss(pred['pred_value_traj'], value) + F.mse_loss(pred['pred_value_ctrl'], value)) * self.config.value_weight
         feature_loss = (F.mse_loss(pred['pred_features_traj'], feature) +F.mse_loss(pred['pred_features_ctrl'], feature))* self.config.features_weight
@@ -145,10 +120,6 @@ class TCP_planner(pl.LightningModule):
         future_feature_loss = 0
         future_action_loss = 0
         for i in range(self.config.pred_len-1):
-            # dist_sup = Beta(batch['future_action_mu'][i], batch['future_action_sigma'][i])
-            # dist_pred = Beta(pred['future_mu'][i], pred['future_sigma'][i])
-            # kl_div = torch.distributions.kl_divergence(dist_sup, dist_pred)
-            # future_action_loss += torch.mean(kl_div[:, 0]) *0.5 + torch.mean(kl_div[:, 1]) *0.5
             future_action_loss += F.nll_loss(F.log_softmax(pred['future_action_index'][i], dim=1), batch['future_action_index'][i])
             future_feature_loss += F.mse_loss(pred['future_feature'][i], batch['future_feature'][i]) * self.config.features_weight
         future_feature_loss /= self.config.pred_len
@@ -200,23 +171,22 @@ if __name__ == "__main__":
 
     TCP_model = TCP_planner(config, args.lr)
 
-    checkpoint_callback = ModelCheckpoint(save_weights_only=False, mode="min", monitor="val_loss", save_top_k=20, save_last=True,
+    checkpoint_callback = ModelCheckpoint(save_weights_only=False, mode="min", monitor="val_loss", save_top_k=30, save_last=True,
                                             dirpath=args.logdir, filename="best_{epoch:02d}-{val_loss:.3f}")
-    trainer = pl.Trainer.from_argparse_args(args,
-                                            default_root_dir=args.logdir,
-                                            gpus = args.gpus,
-                                            accelerator='ddp',
-                                            sync_batchnorm=True,
-                                            plugins=DDPPlugin(find_unused_parameters=False),
-                                            profiler='simple',
-                                            benchmark=True,
-                                            log_every_n_steps=1,
-                                            flush_logs_every_n_steps=1,
-                                            callbacks=[checkpoint_callback,
-                                                        ],
-                                            check_val_every_n_epoch = args.val_every,
-                                            max_epochs = args.epochs,
-                                            )
+    trainer = pl.Trainer(
+                        default_root_dir=args.logdir,
+                        devices = args.gpus,
+                        accelerator='gpu',
+                        strategy=DDPStrategy(static_graph=True),
+                        sync_batchnorm=True,
+                        profiler='simple',
+                        benchmark=True,
+                        log_every_n_steps=1,
+                        callbacks=[checkpoint_callback,
+                                    ],
+                        check_val_every_n_epoch = args.val_every,
+                        max_epochs = args.epochs,
+                        )
 
     trainer.fit(TCP_model, dataloader_train, dataloader_val)
     
