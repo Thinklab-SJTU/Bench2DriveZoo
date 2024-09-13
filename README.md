@@ -3,7 +3,7 @@
   <img src="assets/bench2drive.jpg" style="width: 100%; height: auto;">
 </h2>
 <h2 align="center">
-Bench2DriveZoo
+Bench2DriveZoo (with Think2Drive as Teacher Model)
 </h2>
 <h2 align="center">
   <img src="assets/bench2drivezoo.png" style="width: 100%; height: auto;">
@@ -12,10 +12,29 @@ Bench2DriveZoo
 
 # Introduction
 
-- This repo contains the training, open-loop evaluation, and closed-loop evaluation code for [BEVFormer](https://github.com/fundamentalvision/BEVFormer), [UniAD](https://github.com/OpenDriveLab/UniAD) , [VAD](https://github.com/hustvl/VAD) in [Bench2Drive](https://github.com/Thinklab-SJTU/Bench2Drive).
+- This repo contains the training, open-loop evaluation, and closed-loop evaluation code for [BEVFormer](https://github.com/fundamentalvision/BEVFormer), [UniAD](https://github.com/OpenDriveLab/UniAD) , [VAD](https://github.com/hustvl/VAD) in [Bench2Drive](https://github.com/Thinklab-SJTU/Bench2Drive). **All models are student models of the world model RL teacher - [Think2Drive](https://arxiv.org/abs/2402.16720).**
 - We merge multiple dependencies of UniAD and VAD including mmcv, mmseg, mmdet, and mmdet3d (v0.17.1) into a single library. As a result, it could support latest pytorch and advanced frameworks like deepspeed for acceleration.
 - Use "git checkout tcp/admlp" to obtain their corresponding training and evaluation code.
 
+# Citation <a name="citation"></a>
+
+Please consider citing our papers if the project helps your research with the following BibTex:
+
+```bibtex
+@article{jia2024bench,
+  title={Bench2Drive: Towards Multi-Ability Benchmarking of Closed-Loop End-To-End Autonomous Driving},
+  author={Xiaosong Jia and Zhenjie Yang and Qifeng Li and Zhiyuan Zhang and Junchi Yan},
+  journal={arXiv preprint arXiv:2406.03877},
+  year={2024}
+}
+
+@inproceedings{li2024think,
+  title={Think2Drive: Efficient Reinforcement Learning by Thinking in Latent World Model for Quasi-Realistic Autonomous Driving (in CARLA-v2)},
+  author={Qifeng Li and Xiaosong Jia and Shaobo Wang and Junchi Yan},
+  booktitle={ECCV},
+  year={2024}
+}
+```
 
 # Getting Started
 
