@@ -15,6 +15,7 @@ Bench2DriveZoo (with Think2Drive as Teacher Model)
 - This repo contains the training, open-loop evaluation, and closed-loop evaluation code for [BEVFormer](https://github.com/fundamentalvision/BEVFormer), [UniAD](https://github.com/OpenDriveLab/UniAD) , [VAD](https://github.com/hustvl/VAD) in [Bench2Drive](https://github.com/Thinklab-SJTU/Bench2Drive). **All models are student models of the world model RL teacher - [Think2Drive](https://arxiv.org/abs/2402.16720).**
 - We merge multiple dependencies of UniAD and VAD including mmcv, mmseg, mmdet, and mmdet3d (v0.17.1) into a single library. As a result, it could support latest pytorch and advanced frameworks like deepspeed for acceleration.
 - Use "git checkout tcp/admlp" to obtain their corresponding training and evaluation code.
+- **To calculate smoothness and efficiency**, remember to write self.metric_info related codes in your own team code agent. This two metrics require the state of the ego vehicle at each step in 20Hz. You may comment the lines about saving sensor data to save disk space.
 
 # Citation <a name="citation"></a>
 
