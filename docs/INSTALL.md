@@ -15,6 +15,7 @@
     ```
 - **STEP 4: Set environment variables**
     ```
+    # cuda 11.8 and GCC 9.4 is strongly recommended. Otherwise, it might encounter errors.
     export PATH=YOUR_GCC_PATH/bin:$PATH
     export CUDA_HOME=YOUR_CUDA_PATH/
     ```
