@@ -14,7 +14,6 @@ Please follow these steps to evaluate UniAD and VAD in CARLA:
 cd Bench2Drive/leaderboard
 mkdir team_code
 ln -s Bench2DriveZoo/team_code/* ./team_code    # link UniAD,VAD agents and utils 
-cd ..
 ln -s Bench2DriveZoo  ./                        # link entire repo to Bench2Drive. 
 ```
 
