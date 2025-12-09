@@ -177,7 +177,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
             EARTH_RADIUS_EQUA = 6378137.0
             def equations(vars):
                 x, y = vars
-                eq1 = lon * math.cos(x * math.pi / 180) - (locx * x * 180) / (math.pi * EARTH_RADIUS_EQUA) - math.cos(x * math.pi / 180) * y
+                eq1 = lon * math.cos(x * math.pi / 180) - (locx * 180) / (math.pi * EARTH_RADIUS_EQUA) - math.cos(x * math.pi / 180) * y
                 eq2 = math.log(math.tan((lat + 90) * math.pi / 360)) * EARTH_RADIUS_EQUA * math.cos(x * math.pi / 180) + locy - math.cos(x * math.pi / 180) * EARTH_RADIUS_EQUA * math.log(math.tan((90 + x) * math.pi / 360))
                 return [eq1, eq2]
             initial_guess = [0, 0]
