@@ -426,8 +426,15 @@ class OccHead(BaseModule):
             out_dict['ins_seg_gt'] = self.get_ins_seg_gt(gt_instance[:, :1+self.n_future])  # [1, 5, 200, 200]
         if no_query:
             # output all zero results
-            out_dict['seg_out'] = torch.zeros((1, 5, 1, 200, 200),device=bev_feat.device).long()  # [1, 5, 1, 200, 200]
-            out_dict['ins_seg_out'] = torch.zeros((1, 5, 1, 200, 200),device=bev_feat.device).long()  # [1, 5, 200, 200]
+            if 'seg_gt' in out_dict:
+                out_dict['seg_out'] = torch.zeros_like(out_dict['seg_gt']).long()  # [1, 5, 1, 200, 200]
+                out_dict['ins_seg_out'] = torch.zeros_like(out_dict['ins_seg_gt']).long()  # [1, 5, 200, 200]
+            else:
+                # No GT available (e.g. closed-loop evaluation): create zero tensors from known dimensions
+                t = 1 + self.n_future  # number of time steps
+                h, w = self.bev_size
+                out_dict['seg_out'] = torch.zeros((1, t, 1, h, w), dtype=torch.long, device=bev_feat.device)
+                out_dict['ins_seg_out'] = torch.zeros((1, t, h, w), dtype=torch.long, device=bev_feat.device)
             return out_dict
 
 
