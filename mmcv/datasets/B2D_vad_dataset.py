@@ -37,9 +37,9 @@ from .nuscenes_styled_eval_utils import DetectionMetrics, EvalBoxes, DetectionBo
 
 @DATASETS.register_module()
 class B2D_VAD_Dataset(Custom3DDataset):
-
-
-    def __init__(self, queue_length=4, bev_size=(200, 200),overlap_test=False,with_velocity=True,sample_interval=5,name_mapping= None,eval_cfg = None, map_root =None,map_file=None,past_frames=2, future_frames=6,point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0] ,polyline_points_num=20,*args, **kwargs):
+    def __init__(self, queue_length=4, bev_size=(200, 200), overlap_test=False, with_velocity=True, 
+                 sample_interval=5, name_mapping= None, eval_cfg=None, past_frames=2, future_frames=6, 
+                 point_cloud_range=[-51.2, -51.2, -5.0, 51.2, 51.2, 3.0], polyline_points_num=20, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.queue_length = queue_length
         self.bev_size = bev_size
@@ -50,18 +50,14 @@ class B2D_VAD_Dataset(Custom3DDataset):
         self.sample_interval = sample_interval
         self.past_frames = past_frames
         self.future_frames = future_frames
-        self.map_root = map_root
-        self.map_file = map_file
         self.point_cloud_range = np.array(point_cloud_range)
         self.polyline_points_num = polyline_points_num
         self.map_element_class = {'Broken':0, 'Solid':1, 'SolidSolid':2,'Center':3,'TrafficLight':4,'StopSign':5}
         self.MAPCLASSES = list(self.map_element_class.keys())
         self.NUM_MAPCLASSES = len(self.MAPCLASSES)
         self.map_eval_use_same_gt_sample_num_flag = True
-        self.map_ann_file = 'data/infos'
+        self.map_ann_file = 'data/infos/map_gt.pkl'
         self.eval_cfg  = eval_cfg
-        with open(self.map_file,'rb') as f: 
-            self.map_infos = pickle.load(f)
 
     def invert_pose(self, pose):
         inv_pose = np.eye(4)
@@ -78,7 +74,7 @@ class B2D_VAD_Dataset(Custom3DDataset):
             dict: Training data dict of the corresponding index.
         """
         queue = []
-        index_list = list(range(index-self.queue_length*self.sample_interval, index,self.sample_interval))
+        index_list = list(range(index - self.queue_length * self.sample_interval, index, self.sample_interval))
         random.shuffle(index_list)
         index_list = sorted(index_list[1:])
         index_list.append(index)
@@ -92,7 +88,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
             gt_labels,gt_bboxes = self.get_map_info(index)
             example['map_gt_labels_3d'] = DC(gt_labels, cpu_only=False)
             example['map_gt_bboxes_3d'] = DC(gt_bboxes, cpu_only=True)
-            
             if self.filter_empty_gt and \
                     (example is None or ~(example['gt_labels_3d']._data != -1).any()):
                 return None
@@ -147,7 +142,7 @@ class B2D_VAD_Dataset(Custom3DDataset):
                     from lidar to different cameras.
                 - ann_info (dict): Annotation info.
         """
-        info = self.data_infos[index]
+        info = self.get_data_by_index(index)
 
         for i in range(len(info['gt_names'])):
             if info['gt_names'][i] in self.NameMapping.keys():
@@ -181,7 +176,7 @@ class B2D_VAD_Dataset(Custom3DDataset):
             for sensor_type, cam_info in info['sensors'].items():
                 if not 'CAM' in sensor_type:
                     continue
-                image_paths.append(osp.join(self.data_root,cam_info['data_path']))
+                image_paths.append(osp.join(self.data_root, cam_info['data_path']))
                 # obtain lidar to image transformation matrix
                 cam2ego = cam_info['cam2ego']
                 intrinsic = cam_info['intrinsic']
@@ -224,12 +219,12 @@ class B2D_VAD_Dataset(Custom3DDataset):
         can_bus[17] = yaw_in_degree
         input_dict['can_bus'] = can_bus
         ego_lcf_feat = np.zeros(9)
-        ego_lcf_feat[0:2] = input_dict['ego_translation'][0:2]
+        ego_lcf_feat[0:2] = input_dict['ego_vel'][0:2]
         ego_lcf_feat[2:4] = input_dict['ego_accel'][2:4]
         ego_lcf_feat[4] = input_dict['ego_rotation_rate'][-1]
         ego_lcf_feat[5] = info['ego_size'][1]
         ego_lcf_feat[6] = info['ego_size'][0]
-        ego_lcf_feat[7] = np.sqrt(input_dict['ego_translation'][0]**2+input_dict['ego_translation'][1]**2)
+        ego_lcf_feat[7] = info['ego_vel'][0]
         ego_lcf_feat[8] = info['steer']
         ego_his_trajs, ego_fut_trajs, ego_fut_masks, command = self.get_ego_trajs(index,self.sample_interval,self.past_frames,self.future_frames)
         input_dict['ego_his_trajs'] = ego_his_trajs
@@ -238,19 +233,15 @@ class B2D_VAD_Dataset(Custom3DDataset):
         input_dict['ego_fut_cmd'] = command
         input_dict['ego_lcf_feat'] = ego_lcf_feat
         input_dict['fut_valid_flag'] = (ego_fut_masks==1).all() 
-
         return input_dict
 
-
     def get_map_info(self, index):
-
         gt_masks = []
         gt_labels = []
         gt_bboxes = []
-
-        ann_info = self.data_infos[index]
+        ann_info = self.get_data_by_index(index)
         town_name = ann_info['town_name']
-        map_info = self.map_infos[town_name]
+        map_info = self.get_map_by_name(town_name)
         lane_points = map_info['lane_points']
         lane_sample_points = map_info['lane_sample_points']
         lane_types = map_info['lane_types']
@@ -261,13 +252,11 @@ class B2D_VAD_Dataset(Custom3DDataset):
         ego_xy = np.linalg.inv(world2lidar)[0:2,3]
         max_distance = 50
         chosed_idx = []
-
         for idx in range(len(lane_sample_points)):
             single_sample_points = lane_sample_points[idx]
             distance = np.linalg.norm((single_sample_points[:,0:2]-ego_xy),axis=-1)
             if np.min(distance) < max_distance:
                 chosed_idx.append(idx)
-
         polylines = []
         for idx in chosed_idx:
             if not lane_types[idx] in self.map_element_class.keys():
@@ -299,8 +288,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
         gt_bboxes = LiDARInstanceLines(polylines,fixed_num=self.polyline_points_num,patch_size=(self.point_cloud_range[4]-self.point_cloud_range[1],self.point_cloud_range[3]-self.point_cloud_range[0]))
         return gt_labels,gt_bboxes
 
-
-
     def get_ann_info(self, index):
         """Get annotation info according to the given index.
 
@@ -315,9 +302,8 @@ class B2D_VAD_Dataset(Custom3DDataset):
                 - gt_labels_3d (np.ndarray): Labels of ground truths.
                 - gt_names (list[str]): Class names of ground truths.
         """
-        info = self.data_infos[index]
+        info = self.get_data_by_index(index)
         # filter out bbox containing no points
-
         for i in range(len(info['gt_names'])):
             if info['gt_names'][i] in self.NameMapping.keys():
                 info['gt_names'][i] = self.NameMapping[info['gt_names'][i]]
@@ -335,7 +321,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
 
         if not self.with_velocity:
             gt_bboxes_3d = gt_bboxes_3d[:,0:7]
-
         gt_bboxes_3d = LiDARInstance3DBoxes(
             gt_bboxes_3d,
             box_dim=gt_bboxes_3d.shape[-1],
@@ -365,19 +350,16 @@ class B2D_VAD_Dataset(Custom3DDataset):
             return data
 
     def get_ego_trajs(self,idx,sample_rate,past_frames,future_frames):
-
         adj_idx_list = range(idx-past_frames*sample_rate,idx+(future_frames+1)*sample_rate,sample_rate)
-        cur_frame = self.data_infos[idx]
+        cur_frame = self.get_data_by_index(idx)
         full_adj_track = np.zeros((past_frames+future_frames+1,2))
         full_adj_adj_mask = np.zeros(past_frames+future_frames+1)
         world2lidar_lidar_cur = cur_frame['sensors']['LIDAR_TOP']['world2lidar']
         for j in range(len(adj_idx_list)):
             adj_idx = adj_idx_list[j]
-            if adj_idx <0 or adj_idx>=len(self.data_infos):
+            if not self.is_in_same_route(idx, adj_idx): # end if not in the same route
                 break
-            adj_frame = self.data_infos[adj_idx]
-            if adj_frame['folder'] != cur_frame ['folder']:
-                break
+            adj_frame = self.get_data_by_index(adj_idx) 
             world2lidar_ego_adj = adj_frame['sensors']['LIDAR_TOP']['world2lidar']
             adj2cur_lidar = world2lidar_lidar_cur @ np.linalg.inv(world2lidar_ego_adj)
             xy = adj2cur_lidar[0:2,3]
@@ -388,7 +370,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
             if full_adj_adj_mask[j] == 0:
                 offset_track[j] = offset_track[j+1]
         for j in range(past_frames,past_frames+future_frames,1):
-
             if full_adj_adj_mask[j+1] == 0 :
                 offset_track[j] = 0
         command = self.command2hot(cur_frame['command_near'])
@@ -403,10 +384,8 @@ class B2D_VAD_Dataset(Custom3DDataset):
         return cmd_one_hot
 
     def get_box_attr_labels(self,idx,sample_rate,frames):
-
-
-        adj_idx_list = range(idx,idx+(frames+1)*sample_rate,sample_rate)
-        cur_frame = self.data_infos[idx]
+        adj_idx_list = range(idx, idx + (frames + 1) * sample_rate, sample_rate)
+        cur_frame = self.get_data_by_index(idx)
         cur_box_names = cur_frame['gt_names']
         for i in range(len(cur_box_names)):
             if cur_box_names[i] in self.NameMapping.keys():
@@ -425,21 +404,15 @@ class B2D_VAD_Dataset(Custom3DDataset):
             agent_lcf_feat[i,3:5] = cur_boxes[i,7:]
             agent_lcf_feat[i,5:8] = cur_boxes[i,3:6]
             cur_box_name = cur_box_names[i]
-            if cur_box_name in self.CLASSES:
-                agent_lcf_feat[i, 8] = self.CLASSES.index(cur_box_name)
-            else:
-                agent_lcf_feat[i, 8] = -1
-
+            agent_lcf_feat[i, 8] = self.CLASSES.index(cur_box_name) if cur_box_name in self.CLASSES else -1
             box_id = box_ids[i]
             cur_box2lidar = world2lidar_lidar_cur @ cur_frame['npc2world'][i]
             cur_xy = cur_box2lidar[0:2,3]      
             for j in range(len(adj_idx_list)):
                 adj_idx = adj_idx_list[j]
-                if adj_idx <0 or adj_idx>=len(self.data_infos):
+                if not self.is_in_same_route(idx, adj_idx): 
                     break
-                adj_frame = self.data_infos[adj_idx]
-                if adj_frame['folder'] != cur_frame ['folder']:
-                    break
+                adj_frame = self.get_data_by_index(adj_idx)
                 if len(np.where(adj_frame['gt_ids']==box_id)[0])==0:
                     continue
                 assert len(np.where(adj_frame['gt_ids']==box_id)[0]) == 1 , np.where(adj_frame['gt_ids']==box_id)[0]
@@ -449,7 +422,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
                 future_track[i,j,:] = adj_xy
                 future_mask[i,j] = 1
                 future_yaw[i,j] = np.arctan2(adj_box2lidar[1,0],adj_box2lidar[0,0])
-
             coord_diff = future_track[i,-1] - future_track[i,0]
             if coord_diff.max() < 1.0: # static
                 gt_fut_goal[i] = 9
@@ -468,13 +440,11 @@ class B2D_VAD_Dataset(Custom3DDataset):
         attr_labels = np.concatenate([future_track_offset.reshape(-1,frames*2), future_mask_offset, gt_fut_goal, agent_lcf_feat, future_yaw_offset],axis=-1).astype(np.float32)
         return attr_labels.copy()
 
-
-
     def load_gt(self):
         all_annotations = EvalBoxes()
-        for i in range(len(self.data_infos)):
+        for i in range(len(self)):
             sample_boxes = []
-            sample_data = self.data_infos[i]
+            sample_data = self.get_data_by_index(i)
             gt_boxes = sample_data['gt_boxes']
             for j in range(gt_boxes.shape[0]):
                 class_name = self.NameMapping[sample_data['gt_names'][j]]
@@ -497,8 +467,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
             all_annotations.add_boxes(sample_data['folder']+'_'+str(sample_data['frame_idx']), sample_boxes)
         return all_annotations
 
-
-
     def _format_gt(self):
         gt_annos = []
         print('Start to convert gt map format...')
@@ -508,7 +476,8 @@ class B2D_VAD_Dataset(Custom3DDataset):
             prog_bar = mmcv.ProgressBar(dataset_length)
             mapped_class_names = self.MAPCLASSES
             for sample_id in range(dataset_length):
-                sample_token = self.data_infos[sample_id]['folder'] +  '_' + str(self.data_infos[sample_id]['frame_idx'])
+                data_sample = self.get_data_by_index(sample_id)
+                sample_token = data_sample['folder'] +  '_' + str(data_sample['frame_idx'])
                 gt_anno = {}
                 gt_anno['sample_token'] = sample_token
                 # gt_sample_annos = []
@@ -537,7 +506,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
         else:
             print(f'{self.map_ann_file} exist, not update')
 
-
     def _format_bbox(self, results, jsonfile_prefix=None, score_thresh=0.2):
         """Convert the results to the standard format.
 
@@ -559,7 +527,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
         plan_annos = {}
         print('Start to convert detection format...')
         for sample_id, det in enumerate(track_iter_progress(results)):
-            #pdb.set_trace()
             annos = []
             box3d = det['boxes_3d']
             scores = det['scores_3d']
@@ -568,7 +535,8 @@ class B2D_VAD_Dataset(Custom3DDataset):
             box_dims = box3d.dims
             box_yaw = box3d.yaw.numpy()
             box_yaw = -box_yaw - np.pi / 2
-            sample_token = self.data_infos[sample_id]['folder'] + '_' + str(self.data_infos[sample_id]['frame_idx'])
+            data_sample = self.get_data_by_index(sample_id)
+            sample_token = data_sample['folder'] +  '_' + str(data_sample['frame_idx'])
             for i in range(len(box3d)):
                 #import pdb;pdb.set_trace()
                 if scores[i] < score_thresh:
@@ -589,7 +557,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
             nusc_annos[sample_token] = annos
             map_pred_anno = {}
             vecs = output_to_vecs(det)
-            sample_token = self.data_infos[sample_id]['folder'] +  '_' + str(self.data_infos[sample_id]['frame_idx'])
             map_pred_anno['sample_token'] = sample_token
             pred_vec_list=[]
             for i, vec in enumerate(vecs):
@@ -624,9 +591,7 @@ class B2D_VAD_Dataset(Custom3DDataset):
             'plan_results': plan_annos
             # 'GTs': gt_annos
         }
-
         mmcv.mkdir_or_exist(jsonfile_prefix)
-
         res_path = osp.join(jsonfile_prefix, 'results_nusc.json')
         print('Results writes to', res_path)
         dump(nusc_submissions, res_path)
@@ -707,11 +672,7 @@ class B2D_VAD_Dataset(Custom3DDataset):
             result_data = json.load(f)
         pred_boxes = EvalBoxes.deserialize(result_data['results'], DetectionBox)
         meta = result_data['meta']
-
-
-
         gt_boxes = self.load_gt()
-
         metric_data_list = DetectionMetricDataList()
         for class_name in self.eval_cfg['class_names']:
             for dist_th in self.eval_cfg['dist_ths']:
@@ -725,7 +686,6 @@ class B2D_VAD_Dataset(Custom3DDataset):
                 metric_data = metric_data_list[(class_name, dist_th)]
                 ap = calc_ap(metric_data, self.eval_cfg['min_recall'], self.eval_cfg['min_precision'])
                 metrics.add_label_ap(class_name, dist_th, ap)
-
             # Compute TP metrics.
             for metric_name in self.eval_cfg['tp_metrics']:
                 metric_data = metric_data_list[(class_name, self.eval_cfg['dist_th_tp'])]
@@ -775,11 +735,9 @@ class B2D_VAD_Dataset(Custom3DDataset):
         detail['{}/NDS'.format(metric_prefix)] = metrics_summary['nd_score']
         detail['{}/mAP'.format(metric_prefix)] = metrics_summary['mean_ap']
 
-
         # from mmcv.datasets.map_utils.mean_ap import eval_map
         # from mmcv.datasets.map_utils.mean_ap import format_res_gt_by_classes
         # result_path = osp.abspath(result_path)
-        
         # print('Formating results & gts by classes')
         # pred_results = load(result_path)
         # map_results = pred_results['map_results']
@@ -950,8 +908,6 @@ def output_to_nusc_box(detection):
     scores = detection['scores_3d'].numpy()
     labels = detection['labels_3d'].numpy()
     trajs = detection['trajs_3d'].numpy()
-
-
     box_gravity_center = box3d.gravity_center.numpy()
     box_dims = box3d.dims.numpy()
     box_yaw = box3d.yaw.numpy()

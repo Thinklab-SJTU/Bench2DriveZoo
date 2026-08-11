@@ -177,7 +177,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
             EARTH_RADIUS_EQUA = 6378137.0
             def equations(vars):
                 x, y = vars
-                eq1 = lon * math.cos(x * math.pi / 180) - (locx * x * 180) / (math.pi * EARTH_RADIUS_EQUA) - math.cos(x * math.pi / 180) * y
+                eq1 = lon * math.cos(x * math.pi / 180) - (locx * 180) / (math.pi * EARTH_RADIUS_EQUA) - math.cos(x * math.pi / 180) * y
                 eq2 = math.log(math.tan((lat + 90) * math.pi / 360)) * EARTH_RADIUS_EQUA * math.cos(x * math.pi / 180) + locy - math.cos(x * math.pi / 180) * EARTH_RADIUS_EQUA * math.log(math.tan((90 + x) * math.pi / 360))
                 return [eq1, eq2]
             initial_guess = [0, 0]
@@ -347,12 +347,12 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         can_bus[17] = ego_theta / np.pi * 180 
         results['can_bus'] = can_bus
         ego_lcf_feat = np.zeros(9)
-        ego_lcf_feat[0:2] = can_bus[0:2].copy()
+        ego_lcf_feat[0] = tick_data['speed']
         ego_lcf_feat[2:4] = can_bus[10:12].copy()
-        ego_lcf_feat[4] = rotation[-1]
+        ego_lcf_feat[4] = can_bus[15]
         ego_lcf_feat[5] = 4.89238167
         ego_lcf_feat[6] = 1.83671331
-        ego_lcf_feat[7] = np.sqrt(can_bus[0]**2+can_bus[1]**2)
+        ego_lcf_feat[7] = tick_data['speed']
 
         if len(self.prev_control_cache)<10:
             ego_lcf_feat[8] = 0

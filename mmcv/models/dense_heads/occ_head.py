@@ -416,8 +416,6 @@ class OccHead(BaseModule):
                 ):
         out_dict = dict()
 
-        #import pdb;pdb.set_trace()
-
         if gt_segmentation is not None and gt_instance is not None:
             gt_segmentation, gt_instance, gt_img_is_valid = self.get_occ_labels(gt_segmentation, gt_instance, gt_img_is_valid)
 
@@ -427,7 +425,7 @@ class OccHead(BaseModule):
         if no_query:
             # output all zero results
             out_dict['seg_out'] = torch.zeros((1, 5, 1, 200, 200),device=bev_feat.device).long()  # [1, 5, 1, 200, 200]
-            out_dict['ins_seg_out'] = torch.zeros((1, 5, 1, 200, 200),device=bev_feat.device).long()  # [1, 5, 200, 200]
+            out_dict['ins_seg_out'] = torch.zeros((1, 5, 200, 200),device=bev_feat.device).long()  # [1, 5, 200, 200]
             return out_dict
 
 

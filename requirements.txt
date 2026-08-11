@@ -2,7 +2,7 @@ cython
 numba==0.48.0 # In order to speed up
 addict
 packaging
-Pillow
+Pillow==9.5.0
 matplotlib
 regex;sys_platform=='win32'
 pycocotools; platform_system == "Linux"

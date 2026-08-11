@@ -41,7 +41,6 @@ NameMapping = {
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/Mini2021/SM_Mini2021_parked.SM_Mini2021_parked": 'car',
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/NissanPatrol2021/SM_NissanPatrol2021_parked.SM_NissanPatrol2021_parked": 'car',
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/TeslaM3/SM_TeslaM3_parked.SM_TeslaM3_parked": 'car',
-    "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/VolkswagenT2/SM_VolkswagenT2_2021_Parked.SM_VolkswagenT2_2021_Parked": 'car',
     # bus
     # van
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/VolkswagenT2/SM_VolkswagenT2_2021_Parked.SM_VolkswagenT2_2021_Parked": "van",
@@ -58,7 +57,6 @@ NameMapping = {
     "traffic.speed_limit.60": 'traffic_sign',
     "traffic.speed_limit.90": 'traffic_sign',
     "traffic.speed_limit.120": 'traffic_sign',
-    
     "traffic.stop": 'traffic_sign',
     "traffic.yield": 'traffic_sign',
     "traffic.traffic_light": 'traffic_light',
@@ -68,10 +66,8 @@ NameMapping = {
     "static.prop.warningconstruction" : 'traffic_cone',
     "static.prop.warningaccident": 'traffic_cone',
     "static.prop.trafficwarning": "traffic_cone",
-
     #===================Construction===========
     "static.prop.constructioncone": 'traffic_cone',
-
     #=================pedestrian==============
     "walker.pedestrian.0001": 'pedestrian',
     "walker.pedestrian.0003": 'pedestrian',
@@ -100,7 +96,6 @@ NameMapping = {
     "walker.pedestrian.0042": 'pedestrian',
     "walker.pedestrian.0046": 'pedestrian',
     "walker.pedestrian.0047": 'pedestrian',
-
     # ==========================================
     "static.prop.dirtdebris01": 'others',
     "static.prop.dirtdebris02": 'others',
@@ -224,7 +219,6 @@ model = dict(
                             embed_dims=_dim_,
                             num_levels=1),
                     ],
-
                     feedforward_channels=_ffn_dim_,
                     ffn_dropout=0.0,
                     operation_order=('self_attn', 'norm', 'cross_attn', 'norm',
@@ -264,13 +258,12 @@ model = dict(
             pc_range=point_cloud_range))))
 
 dataset_type = "B2D_Dataset"
-data_root = "data/bench2drive"
+data_root = "data/bench2drive/trainval"
 info_root = "data/infos"
 file_client_args = dict(backend="disk")
-ann_file_train=info_root + f"/b2d_infos_train.pkl"
-ann_file_val=info_root + f"/b2d_infos_val.pkl"
-ann_file_test=info_root + f"/b2d_infos_val.pkl"
-
+ann_file_train=info_root + f"/b2d_infos_train_meta.pkl"
+ann_file_val=info_root + f"/b2d_infos_val_meta.pkl"
+ann_file_test=info_root + f"/b2d_infos_val_meta.pkl"
 
 train_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
@@ -318,20 +311,37 @@ data = dict(
         sample_interval=5,
         name_mapping=NameMapping,
         eval_cfg=eval_cfg,
+        use_separated_clip_data=True,
+        cache_lenth=300,
         # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
         # and box_type_3d='Depth' in sunrgbd and scannet dataset.
         box_type_3d='LiDAR'),
     val=dict(type=dataset_type,
              data_root=data_root,
              ann_file=ann_file_val,
-             pipeline=test_pipeline,  bev_size=(bev_h_, bev_w_),
-             classes=class_names, modality=input_modality, samples_per_gpu=1,sample_interval=5,        name_mapping=NameMapping,eval_cfg=eval_cfg,),
+             pipeline=test_pipeline,  
+             bev_size=(bev_h_, bev_w_),
+             classes=class_names, 
+             modality=input_modality,
+             sample_interval=5,
+             name_mapping=NameMapping,
+             eval_cfg=eval_cfg,
+             use_separated_clip_data=True,
+             cache_lenth=-1,
+             box_type_3d='LiDAR'),
     test=dict(type=dataset_type,
               data_root=data_root,
               ann_file=ann_file_val,
-              pipeline=test_pipeline, bev_size=(bev_h_, bev_w_),
-              classes=class_names, modality=input_modality,sample_interval=5,
-              name_mapping=NameMapping,eval_cfg=eval_cfg,),
+              pipeline=test_pipeline, 
+              bev_size=(bev_h_, bev_w_),
+              classes=class_names, 
+              modality=input_modality,
+              sample_interval=5,
+              name_mapping=NameMapping,
+              eval_cfg=eval_cfg,
+              use_separated_clip_data=True,
+              cache_lenth=-1,
+              box_type_3d='LiDAR'),
     shuffler_sampler=dict(type='DistributedGroupSampler'),
     nonshuffler_sampler=dict(type='DistributedSampler')
 )

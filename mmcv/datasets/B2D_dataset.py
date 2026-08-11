@@ -18,53 +18,15 @@ import json
 
 @DATASETS.register_module()
 class B2D_Dataset(Custom3DDataset):
-
-
-    def __init__(self, queue_length=4, bev_size=(200, 200),overlap_test=False,with_velocity=True,sample_interval=5,name_mapping= None,eval_cfg = None ,*args, **kwargs):
+    def __init__(self, queue_length=4, bev_size=(200, 200), overlap_test=False,
+                 with_velocity=True, sample_interval=5, name_mapping=None, eval_cfg=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.queue_length = queue_length
         self.overlap_test = overlap_test
         self.with_velocity = with_velocity
-        if name_mapping is not None:
-            self.NameMapping  = name_mapping
-        else:
-            self.NameMapping = {
-                'vehicle.bh.crossbike': 'bicycle',
-                "vehicle.diamondback.century": 'bicycle',
-                "vehicle.chevrolet.impala": 'car',
-                "vehicle.dodge.charger_2020": 'car',
-                "vehicle.dodge.charger_police_2020": 'car',
-                "vehicle.lincoln.mkz_2017": 'car',
-                "vehicle.lincoln.mkz_2020": 'car',
-                "vehicle.mini.cooper_s_2021": 'car',
-                "vehicle.mercedes.coupe_2020": 'car',
-                "vehicle.ford.mustang": 'car',
-                "vehicle.nissan.patrol_2021": 'car',
-                "vehicle.audi.tt": 'car',
-                "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/FordCrown/SM_FordCrown_parked.SM_FordCrown_parked": 'car',
-                "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/VolkswagenT2/SM_VolkswagenT2_2021_Parked.SM_VolkswagenT2_2021_Parked": "van",
-                "traffic.speed_limit.30": 'speed_limit',
-                "traffic.speed_limit.40": 'speed_limit',
-                "traffic.speed_limit.50": 'speed_limit',
-                "traffic.speed_limit.60": 'speed_limit',
-                "traffic.traffic_light": 'traffic_light',
-                "traffic.stop": 'stop',
-            }
-        if eval_cfg is not None:
-            self.eval_cfg  = eval_cfg
-        else:
-            self.eval_cfg = {
-                "dist_ths": [0.5, 1.0, 2.0, 4.0],
-                "dist_th_tp": 2.0,
-                "min_recall": 0.1,
-                "min_precision": 0.1,
-                "mean_ap_weight": 5,
-                "class_names":['car','van','bicycle'],
-                "tp_metrics":['trans_err', 'scale_err', 'orient_err', 'vel_err'],
-                "err_name_maping":{'trans_err': 'mATE','scale_err': 'mASE','orient_err': 'mAOE','vel_err': 'mAVE','attr_err': 'mAAE'}
-            }
+        self.NameMapping  = name_mapping
+        self.eval_cfg  = eval_cfg
         self.sample_interval = sample_interval
-
 
     def invert_pose(self, pose):
         inv_pose = np.eye(4)
@@ -81,7 +43,7 @@ class B2D_Dataset(Custom3DDataset):
             dict: Training data dict of the corresponding index.
         """
         queue = []
-        index_list = list(range(index-self.queue_length*self.sample_interval, index,self.sample_interval))
+        index_list = list(range(index - self.queue_length * self.sample_interval, index, self.sample_interval))
         random.shuffle(index_list)
         index_list = sorted(index_list[1:])
         index_list.append(index)
@@ -97,7 +59,6 @@ class B2D_Dataset(Custom3DDataset):
                 return None
             queue.append(example)
         return self.union2one(queue)
-
 
     def union2one(self, queue):
         imgs_list = [each['img'].data for each in queue]
@@ -146,7 +107,7 @@ class B2D_Dataset(Custom3DDataset):
                     from lidar to different cameras.
                 - ann_info (dict): Annotation info.
         """
-        info = self.data_infos[index]
+        info = self.get_data_by_index(index)
         for i in range(len(info['gt_names'])):
             if info['gt_names'][i] in self.NameMapping.keys():
                 info['gt_names'][i] = self.NameMapping[info['gt_names'][i]]
@@ -155,7 +116,7 @@ class B2D_Dataset(Custom3DDataset):
             folder=info['folder'],
             scene_token=info['folder'],
             frame_idx=info['frame_idx'],
-            ego_yaw=np.nan_to_num(info['ego_yaw'],nan=90),
+            ego_yaw=np.nan_to_num(info['ego_yaw'], nan=90),
             ego_translation=info['ego_translation'],
             sensors=info['sensors'],
             gt_ids=info['gt_ids'],
@@ -174,7 +135,7 @@ class B2D_Dataset(Custom3DDataset):
             for sensor_type, cam_info in info['sensors'].items():
                 if not 'CAM' in sensor_type:
                     continue
-                image_paths.append(osp.join(self.data_root,cam_info['data_path']))
+                image_paths.append(osp.join(self.data_root, cam_info['data_path']))
                 cam2ego = cam_info['cam2ego']
                 intrinsic = cam_info['intrinsic']
                 intrinsic_pad = np.eye(4)
@@ -184,7 +145,6 @@ class B2D_Dataset(Custom3DDataset):
                 lidar2img_rts.append(lidar2img)
                 cam_intrinsics.append(intrinsic_pad)
                 lidar2cam_rts.append(lidar2cam)
-
             input_dict.update(
                 dict(
                     img_filename=image_paths,
@@ -228,7 +188,7 @@ class B2D_Dataset(Custom3DDataset):
                 - gt_labels_3d (np.ndarray): Labels of ground truths.
                 - gt_names (list[str]): Class names of ground truths.
         """
-        info = self.data_infos[index]
+        info = self.get_data_by_index(index)
         # filter out bbox containing no points
         mask = (info['num_points'] >= -1)
         gt_bboxes_3d = info['gt_boxes'][mask]
@@ -304,10 +264,7 @@ class B2D_Dataset(Custom3DDataset):
             result_data = json.load(f)
         pred_boxes = EvalBoxes.deserialize(result_data['results'], DetectionBox)
         meta = result_data['meta']
-
-
         gt_boxes = self.load_gt()
-
         metric_data_list = DetectionMetricDataList()
         for class_name in self.eval_cfg['class_names']:
             for dist_th in self.eval_cfg['dist_ths']:
@@ -371,18 +328,15 @@ class B2D_Dataset(Custom3DDataset):
         detail['{}/NDS'.format(metric_prefix)] = metrics_summary['nd_score']
         detail['{}/mAP'.format(metric_prefix)] = metrics_summary['mean_ap']
 
-
         return detail
     
 
     def load_gt(self):
         all_annotations = EvalBoxes()
-        for i in range(len(self.data_infos)):
+        for i in range(len(self)):
             sample_boxes = []
-            sample_data = self.data_infos[i]
-
+            sample_data = self.get_data_by_index(i)
             gt_boxes = sample_data['gt_boxes']
-            
             for j in range(gt_boxes.shape[0]):
                 class_name = self.NameMapping[sample_data['gt_names'][j]]
                 if not class_name in self.eval_cfg['class_range'].keys():
@@ -417,10 +371,8 @@ class B2D_Dataset(Custom3DDataset):
             str: Path of the output json file.
         """
 
-
         nusc_annos = {}
         mapped_class_names = self.CLASSES
-
         print('Start to convert detection format...')
         for sample_id, det in enumerate(track_iter_progress(results)):
             #pdb.set_trace()
@@ -432,10 +384,8 @@ class B2D_Dataset(Custom3DDataset):
             box_dims = box3d.dims
             box_yaw = box3d.yaw.numpy()
             box_yaw = -box_yaw - np.pi / 2
-            sample_token = self.data_infos[sample_id]['folder'] + '_' + str(self.data_infos[sample_id]['frame_idx'])
-
-
-
+            data_sample = self.get_data_by_index(sample_id)
+            sample_token = data_sample['folder'] +  '_' + str(data_sample['frame_idx'])
             for i in range(len(box3d)):
                 #import pdb;pdb.set_trace()
                 quat = list(Quaternion(axis=[0, 0, 1], radians=box_yaw[i]))
@@ -456,7 +406,6 @@ class B2D_Dataset(Custom3DDataset):
             'meta': self.modality,
             'results': nusc_annos,
         }
-
         mkdir_or_exist(jsonfile_prefix)
         res_path = osp.join(jsonfile_prefix, 'results_nusc.json')
         print('Results writes to', res_path)

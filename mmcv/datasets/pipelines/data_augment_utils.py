@@ -2,11 +2,11 @@
 import numba
 import numpy as np
 import warnings
-from numba.errors import NumbaPerformanceWarning
+# from numba.errors import NumbaPerformanceWarning
 
 from mmcv.core.bbox import box_np_ops
 
-warnings.filterwarnings('ignore', category=NumbaPerformanceWarning)
+# warnings.filterwarnings('ignore', category=NumbaPerformanceWarning)
 
 
 @numba.njit

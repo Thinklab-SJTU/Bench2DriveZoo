@@ -458,9 +458,8 @@ def _fill_trainval_infos(nusc,
             # offset from lcf -> per-step offset
             ego_fut_trajs = ego_fut_trajs[1:] - ego_fut_trajs[:-1]
 
-            ### ego lcf feat (vx, vy, ax, ay, w, length, width, vel, steer), w: yaw角速度
+            ### ego lcf feat (vx, vy, ax, ay, w, length, width, vel, steer), w: yaw
             ego_lcf_feat = np.zeros(9)
-            # 根据odom推算自车速度及加速度
             _, _, ego_yaw = quart_to_rpy(pose_record['rotation'])
             ego_pos = np.array(pose_record['translation'])
             if pose_record_prev is not None:

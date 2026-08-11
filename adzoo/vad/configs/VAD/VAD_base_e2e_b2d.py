@@ -43,7 +43,6 @@ NameMapping = {
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/Mini2021/SM_Mini2021_parked.SM_Mini2021_parked": 'car',
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/NissanPatrol2021/SM_NissanPatrol2021_parked.SM_NissanPatrol2021_parked": 'car',
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/TeslaM3/SM_TeslaM3_parked.SM_TeslaM3_parked": 'car',
-    "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/VolkswagenT2/SM_VolkswagenT2_2021_Parked.SM_VolkswagenT2_2021_Parked": 'car',
     # bus
     # van
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/VolkswagenT2/SM_VolkswagenT2_2021_Parked.SM_VolkswagenT2_2021_Parked": "van",
@@ -76,6 +75,7 @@ NameMapping = {
 
     #=================pedestrian==============
     "walker.pedestrian.0001": 'pedestrian',
+    "walker.pedestrian.0002": 'pedestrian',
     "walker.pedestrian.0003": 'pedestrian',
     "walker.pedestrian.0004": 'pedestrian',
     "walker.pedestrian.0005": 'pedestrian',
@@ -98,10 +98,12 @@ NameMapping = {
     "walker.pedestrian.0032": 'pedestrian',
     "walker.pedestrian.0034": 'pedestrian',
     "walker.pedestrian.0035": 'pedestrian',
+    "walker.pedestrian.0036": 'pedestrian',
     "walker.pedestrian.0041": 'pedestrian',
     "walker.pedestrian.0042": 'pedestrian',
     "walker.pedestrian.0046": 'pedestrian',
     "walker.pedestrian.0047": 'pedestrian',
+    "walker.pedestrian.0049": 'pedestrian',
 
     # ==========================================
     "static.prop.dirtdebris01": 'others',
@@ -417,14 +419,13 @@ model = dict(
             pc_range=point_cloud_range))))
 
 dataset_type = "B2D_VAD_Dataset"
-data_root = "data/bench2drive"
+data_root = "data/bench2drive/trainval"
 info_root = "data/infos"
-map_root = "data/bench2drive/maps"
-map_file = "data/infos/b2d_map_infos.pkl"
+map_file = "data/infos/b2d_infos_map"
 file_client_args = dict(backend="disk")
-ann_file_train=info_root + f"/b2d_infos_train.pkl"
-ann_file_val=info_root + f"/b2d_infos_val.pkl"
-ann_file_test=info_root + f"/b2d_infos_val.pkl"
+ann_file_train=info_root + f"/b2d_infos_train_meta.pkl"
+ann_file_val=info_root + f"/b2d_infos_val_meta.pkl"
+ann_file_test=info_root + f"/b2d_infos_val_meta.pkl"
 
 train_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
@@ -478,19 +479,16 @@ inference_only_pipeline = [
             dict(type='CustomCollect3D', keys=[ 'img', 'ego_fut_cmd'])])
 ]
 
-
 data = dict(
     samples_per_gpu=1,
     workers_per_gpu=6,
     train=dict(
-
         type=dataset_type,
         data_root=data_root,
         ann_file=ann_file_train,
         pipeline=train_pipeline,
         classes=class_names,
         name_mapping=NameMapping,
-        map_root=map_root,
         map_file=map_file,
         modality=input_modality,
         bev_size=(bev_h_, bev_w_),
@@ -502,42 +500,53 @@ data = dict(
         # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
         # and box_type_3d='Depth' in sunrgbd and scannet dataset.
         box_type_3d='LiDAR',
+        use_separated_map_data=True,
+        use_separated_clip_data=True,
+        cache_lenth=300,
         #custom_eval_version='vad_nusc_detection_cvpr_2019'
         ),
-    val=dict(type=dataset_type,
-            data_root=data_root,
-            ann_file=ann_file_val,
-            pipeline=test_pipeline,
-            classes=class_names,
-            name_mapping=NameMapping,
-            map_root=map_root,
-            map_file=map_file,
-            modality=input_modality,
-            bev_size=(bev_h_, bev_w_),
-            queue_length=queue_length,
-            past_frames=past_frames,
-            future_frames=future_frames,
-            point_cloud_range=point_cloud_range,
-            polyline_points_num=map_fixed_ptsnum_per_gt_line,
-            eval_cfg=eval_cfg
-            ),
-    test=dict(type=dataset_type,
-            data_root=data_root,
-            ann_file=ann_file_val,
-            pipeline=test_pipeline,
-            classes=class_names,
-            name_mapping=NameMapping,
-            map_root=map_root,
-            map_file=map_file,
-            modality=input_modality,
-            bev_size=(bev_h_, bev_w_),
-            queue_length=queue_length,
-            past_frames=past_frames,
-            future_frames=future_frames,
-            point_cloud_range=point_cloud_range,
-            polyline_points_num=map_fixed_ptsnum_per_gt_line,
-            eval_cfg=eval_cfg
-            ),
+    val=dict(
+        type=dataset_type,
+        data_root=data_root,
+        ann_file=ann_file_val,
+        pipeline=test_pipeline,
+        classes=class_names,
+        name_mapping=NameMapping,
+        map_file=map_file,
+        modality=input_modality,
+        bev_size=(bev_h_, bev_w_),
+        queue_length=queue_length,
+        past_frames=past_frames,
+        future_frames=future_frames,
+        point_cloud_range=point_cloud_range,
+        polyline_points_num=map_fixed_ptsnum_per_gt_line,
+        eval_cfg=eval_cfg,
+        box_type_3d='LiDAR',
+        use_separated_map_data=True,
+        use_separated_clip_data=True,
+        cache_lenth=-1,
+        ),
+    test=dict(
+        type=dataset_type,
+        data_root=data_root,
+        ann_file=ann_file_val,
+        pipeline=test_pipeline,
+        classes=class_names,
+        name_mapping=NameMapping,
+        map_file=map_file,
+        modality=input_modality,
+        bev_size=(bev_h_, bev_w_),
+        queue_length=queue_length,
+        past_frames=past_frames,
+        future_frames=future_frames,
+        point_cloud_range=point_cloud_range,
+        polyline_points_num=map_fixed_ptsnum_per_gt_line,
+        eval_cfg=eval_cfg,
+        box_type_3d='LiDAR',
+        use_separated_map_data=True,
+        use_separated_clip_data=True,
+        cache_lenth=-1,
+        ),
     shuffler_sampler=dict(type='DistributedGroupSampler'),
     nonshuffler_sampler=dict(type='DistributedSampler')
 )
@@ -574,6 +583,5 @@ log_config = dict(
 # fp16 = dict(loss_scale=512.)
 # find_unused_parameters = True
 checkpoint_config = dict(interval=1, max_keep_ckpts=total_epochs)
-
 
 custom_hooks = [dict(type='CustomSetEpochInfoHook')]

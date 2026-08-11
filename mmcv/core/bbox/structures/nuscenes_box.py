@@ -16,7 +16,7 @@ from nuscenes.eval.detection.constants import DETECTION_NAMES, ATTRIBUTE_NAMES
 
 
 def color_map(data, cmap):
-    """数值映射为颜色"""
+    """value -> color"""
     
     dmin, dmax = np.nanmin(data), np.nanmax(data)
     cmo = plt.cm.get_cmap(cmap)

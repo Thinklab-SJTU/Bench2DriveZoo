@@ -165,7 +165,7 @@ class PlanningMetric():
     def evaluate_single_coll(self, traj, segmentation, input_gt):
         '''
         traj: torch.Tensor (n_future, 2)
-            自车lidar系为轨迹参考系
+            ego lidar coordinate system
                 ^ y
                 |
                 | 
@@ -186,7 +186,7 @@ class PlanningMetric():
 
         n_future, _ = traj.shape
         trajs = traj.view(n_future, 1, 2)
-        # 轨迹坐标系转换为:
+        # transfer to:
         #  ^ x
         #  |
         #  | 
@@ -246,7 +246,7 @@ class PlanningMetric():
         ):
         '''
         trajs: torch.Tensor (B, n_future, 2)
-            自车lidar系为轨迹参考系
+            ego lidar
             ^ y
             |
             | 
@@ -268,7 +268,7 @@ class PlanningMetric():
             gt_box_coll = self.evaluate_single_coll(gt_trajs[i], segmentation[i], input_gt=True)
 
             xx, yy = trajs[i,:,0], trajs[i, :, 1]
-            # lidar系下的轨迹转换到图片坐标系下
+            # lidar -> image
             xi = ((-self.bx[0]/2 - yy) / self.dx[0]).long()
             yi = ((-self.bx[1]/2 + xx) / self.dx[1]).long()
 

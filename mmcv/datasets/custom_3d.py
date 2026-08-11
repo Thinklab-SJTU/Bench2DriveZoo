@@ -11,6 +11,7 @@ from .pipelines import Compose
 from .utils import extract_result_dict, get_loading_pipeline
 from mmcv.fileio.io import load, dump
 from mmcv.fileio.parse import list_from_file
+import os, pickle
 
 @DATASETS.register_module()
 class Custom3DDataset(Dataset):
@@ -50,7 +51,11 @@ class Custom3DDataset(Dataset):
                  modality=None,
                  box_type_3d='LiDAR',
                  filter_empty_gt=True,
-                 test_mode=False):
+                 test_mode=False,
+                 use_separated_clip_data=False,
+                 cache_lenth=-1,
+                 map_file=None,
+                 use_separated_map_data=False,):
         super().__init__()
         self.data_root = data_root
         self.ann_file = ann_file
@@ -58,17 +63,97 @@ class Custom3DDataset(Dataset):
         self.modality = modality
         self.filter_empty_gt = filter_empty_gt
         self.box_type_3d, self.box_mode_3d = get_box_type(box_type_3d)
-
         self.CLASSES = self.get_classes(classes)
         self.cat2id = {name: i for i, name in enumerate(self.CLASSES)}
         self.data_infos = self.load_annotations(self.ann_file)
-
         if pipeline is not None:
             self.pipeline = Compose(pipeline)
-
+        # load separated data file for each clip (instead of load all files at beginning)
+        # for quick starting and less memory usage
+        self.use_separated_clip_data = use_separated_clip_data
+        if self.use_separated_clip_data:
+            self.infos_dir_name = self.data_infos['infos_dir_name'] # dictionary name that contain the clips
+            self.routes_names = self.data_infos['routes_names'] # name of each clip
+            self.divide_nums = self.data_infos['divide_nums']         
+            self.cache_lenth = cache_lenth if cache_lenth > 0 else len(self.data_infos['infos_dir_name'])
+            self.current_route_name = None
+            self.current_route_data = None
+            self.current_route_start_idx = None
+            self.current_route_end_idx = None
+            self.cached_route_start_idx = [None] * self.cache_lenth
+            self.cached_route_end_idx = [None] * self.cache_lenth       
+            self.cached_route_names = [None] * self.cache_lenth
+            self.cached_data = [None] * self.cache_lenth
+            self.visit_time = np.zeros(self.cache_lenth,dtype=np.int64)
+            
+        if map_file is not None:
+            if use_separated_map_data:
+                self.map_infos = {map_name.replace('.pkl',''): None for map_name in os.listdir(map_file)}
+                self.map_path = map_file
+            else:
+                with open(self.map_file,'rb') as f: 
+                    self.map_infos = pickle.load(f)
+        else:
+            self.map_infos = None
+            
         # set group flag for the sampler
         if not self.test_mode:
             self._set_group_flag()
+
+    def get_data_by_index(self, index):
+        """
+        Read data with a clip cache. 
+        """        
+        if not self.use_separated_clip_data:
+            return self.data_infos[index]
+        else:
+            if self.current_route_start_idx is not None and index >= self.current_route_start_idx and index < self.current_route_end_idx:
+                return self.current_route_data[index-self.current_route_start_idx] # hit the cache
+            # update cache with LRU policy
+            for i in range(self.cache_lenth):
+                if self.cached_route_start_idx[i] is None:
+                    continue
+                elif index >= self.cached_route_start_idx[i] and index < self.cached_route_end_idx[i]:
+                    self.current_route_name = self.cached_route_names[i]
+                    self.current_route_end_idx = self.cached_route_end_idx[i]
+                    self.current_route_start_idx = self.cached_route_start_idx[i]
+                    self.current_route_data = self.cached_data[i]
+                    self.visit_time += 1
+                    self.visit_time[i] = 0
+                    return self.current_route_data[index-self.current_route_start_idx]
+            route_idx = 0
+            for divide in self.divide_nums:
+                if index >= divide:
+                    route_idx+=1
+                else:
+                    break
+            self.current_route_name = self.routes_names[route_idx]
+            self.current_route_start_idx = self.divide_nums[route_idx-1] if route_idx>0 else 0
+            self.current_route_end_idx =  self.divide_nums[route_idx]     
+            with open(os.path.join(self.infos_dir_name, self.current_route_name+'.pkl'),'rb') as f:
+                self.current_route_data = pickle.load(f)
+            replace_idx = np.argmax(self.visit_time)
+            self.cached_route_names[replace_idx] = self.current_route_name
+            self.cached_route_end_idx[replace_idx] = self.current_route_end_idx
+            self.cached_route_start_idx[replace_idx] = self.current_route_start_idx
+            self.cached_data[replace_idx] = self.current_route_data
+            self.visit_time += 1
+            self.visit_time[replace_idx] = 0
+            return self.current_route_data[index-self.current_route_start_idx]  
+        
+    def is_in_same_route(self, cur_idx, adj_idx):    
+        if adj_idx <0 or adj_idx>=len(self):
+            return False
+        if self.use_separated_clip_data:
+            return (adj_idx >= self.current_route_start_idx and adj_idx < self.current_route_end_idx)
+        else:
+            return self.data_infos[cur_idx]['folder'] == self.data_infos[adj_idx]['folder']  
+        
+    def get_map_by_name(self, town_name):
+        if not self.map_infos[town_name]:
+            with open(os.path.join(self.map_path, town_name+'.pkl'), 'rb') as f:
+                self.map_infos[town_name] = pickle.load(f)                
+        return self.map_infos[town_name]
 
     def load_annotations(self, ann_file):
         """Load annotations from ann_file.
@@ -329,12 +414,10 @@ class Custom3DDataset(Dataset):
         return data
 
     def __len__(self):
-        """Return the length of data infos.
-
-        Returns:
-            int: Length of data infos.
-        """
-        return len(self.data_infos)
+        if self.use_separated_clip_data:
+            return self.data_infos['divide_nums'][-1]
+        else:
+            return len(self.data_infos)
 
     def _rand_another(self, idx):
         """Randomly get another item with the same flag.

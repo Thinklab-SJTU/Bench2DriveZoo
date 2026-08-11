@@ -24,10 +24,15 @@ from prettytable import PrettyTable
 
 @DATASETS.register_module()
 class B2D_E2E_Dataset(Custom3DDataset):
-    def __init__(self, queue_length=4, bev_size=(200, 200),overlap_test=False,with_velocity=True,sample_interval=5,name_mapping= None,eval_cfg = None, map_root =None,map_file=None,past_frames=4, future_frames=4,predict_frames=12,planning_frames=6,patch_size = [102.4, 102.4],point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0] ,occ_receptive_field=3,occ_n_future=6,occ_filter_invalid_sample=False,occ_filter_by_valid_flag=False,eval_mod=None,*args, **kwargs):
+    def __init__(self, queue_length=4, bev_size=(200, 200), overlap_test=False, with_velocity=True,
+                 sample_interval=5, name_mapping=None, eval_cfg=None, past_frames=4, future_frames=4, 
+                 predict_frames=12, planning_frames=6, patch_size=[102.4, 102.4], 
+                 point_cloud_range=[-51.2, -51.2, -5.0, 51.2, 51.2, 3.0],
+                 occ_receptive_field=3, occ_n_future=6, occ_filter_invalid_sample=False,
+                 occ_filter_by_valid_flag=False, eval_mod=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.queue_length = queue_length
-        self.bev_size = (200, 200)
+        self.bev_size = bev_size
         self.overlap_test = overlap_test
         self.with_velocity = with_velocity
         self.NameMapping  = name_mapping
@@ -37,8 +42,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
         self.future_frames = future_frames
         self.predict_frames = predict_frames
         self.planning_frames = planning_frames
-        self.map_root = map_root
-        self.map_file = map_file
         self.point_cloud_range = np.array(point_cloud_range)
         self.patch_size = patch_size
         self.occ_receptive_field = occ_receptive_field  # past + current
@@ -48,8 +51,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
         self.occ_only_total_frames = 7  # NOTE: hardcode, not influenced by planning   
         self.eval_mod = eval_mod     
         self.map_element_class = {'Broken':0, 'Solid':1, 'SolidSolid':2,'Center':3,'TrafficLight':4,'StopSign':5}
-        with open(self.map_file,'rb') as f: 
-            self.map_infos = pickle.load(f)
 
     def invert_pose(self, pose):
         inv_pose = np.eye(4)
@@ -97,15 +98,8 @@ class B2D_E2E_Dataset(Custom3DDataset):
         timestamp_list = [to_tensor(each['timestamp']) for each in queue]
         gt_fut_traj = to_tensor(queue[-1]['gt_fut_traj'])
         gt_fut_traj_mask = to_tensor(queue[-1]['gt_fut_traj_mask'])
-        if 'gt_future_boxes' in queue[-1]:
-            gt_future_boxes_list = queue[-1]['gt_future_boxes']
-        else:
-            gt_future_boxes_list = None
-        if 'gt_future_labels' in queue[-1]:    
-            gt_future_labels_list = [to_tensor(each) for each in queue[-1]['gt_future_labels']]
-        else:
-            gt_future_labels_list = None
-
+        gt_future_boxes_list = queue[-1]['gt_future_boxes'] if 'gt_future_boxes' in queue[-1] else None
+        gt_future_labels_list = [to_tensor(each) for each in queue[-1]['gt_future_labels']] if 'gt_future_labels' in queue[-1] else None
         metas_map = {}
         prev_scene_token = None
         prev_pos = None
@@ -168,21 +162,16 @@ class B2D_E2E_Dataset(Custom3DDataset):
                     from lidar to different cameras.
                 - ann_info (dict): Annotation info.
         """
-        info = self.data_infos[index]
-
+        info = self.get_data_by_index(index)
         for i in range(len(info['gt_names'])):
             if info['gt_names'][i] in self.NameMapping.keys():
                 info['gt_names'][i] = self.NameMapping[info['gt_names'][i]]
-
-
-        gt_masks,gt_labels,gt_bboxes = self.get_map_info(index)
-
-
+        gt_masks, gt_labels, gt_bboxes = self.get_map_info(index)
         input_dict = dict(
             folder=info['folder'],
             scene_token=info['folder'],
             frame_idx=info['frame_idx'],
-            ego_yaw=np.nan_to_num(info['ego_yaw'],nan=np.pi/2),
+            ego_yaw=np.nan_to_num(info['ego_yaw'], nan=np.pi/2),
             ego_translation=info['ego_translation'],
             sensors=info['sensors'],
             world2lidar=info['sensors']['LIDAR_TOP']['world2lidar'],
@@ -197,7 +186,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
             gt_lane_bboxes=gt_bboxes,
             gt_lane_masks=gt_masks,
             timestamp=info['frame_idx']/10
-
         )
 
         if self.modality['use_camera']:
@@ -232,7 +220,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
                     lidar2cam=lidar2cam_rts,
                     l2g_r_mat=lidar2global[0:3,0:3],
                     l2g_t=lidar2global[0:3,3]
-
                 ))
 
         annos = self.get_ann_info(index)
@@ -242,7 +229,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
         if yaw < 0:
             yaw += 2*np.pi
         yaw_in_degree = yaw / np.pi * 180 
-        
         can_bus = np.zeros(18)
         can_bus[:3] = input_dict['ego_translation']
         can_bus[3:7] = rotation
@@ -253,14 +239,11 @@ class B2D_E2E_Dataset(Custom3DDataset):
         can_bus[17] = yaw_in_degree
         input_dict['can_bus'] = can_bus
         all_frames = []
-        for adj_idx in range(index-self.occ_receptive_field+1,index+self.occ_n_future+1):
-            if adj_idx<0 or adj_idx>=len(self.data_infos):
-                all_frames.append(-1)
-            elif self.data_infos[adj_idx]['folder'] != self.data_infos[index]['folder']:
-                all_frames.append(-1)
-            else: 
+        for adj_idx in range(index - self.occ_receptive_field + 1, index + self.occ_n_future + 1):
+            if self.is_in_same_route(index, adj_idx):
                 all_frames.append(adj_idx)
-            
+            else:
+                all_frames.append(-1)            
         future_frames = all_frames[self.occ_receptive_field-1:]
         input_dict['occ_has_invalid_frame'] = (-1 in all_frames[:self.occ_only_total_frames])
         input_dict['occ_img_is_valid'] = np.array(all_frames) >= 0
@@ -273,7 +256,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
             else:
                 occ_future_ann_infos.append(None)
         input_dict['occ_future_ann_infos'] = occ_future_ann_infos
-
         input_dict.update(self.occ_get_transforms(future_frames))
         sdc_planning, sdc_planning_mask = self.get_ego_future_xy(index,self.sample_interval,self.planning_frames)
         input_dict['sdc_planning'] = sdc_planning
@@ -283,19 +265,15 @@ class B2D_E2E_Dataset(Custom3DDataset):
             command = 4
         command -= 1
         input_dict['command'] = command
-
         return input_dict
 
-
     def get_map_info(self, index):
-
         gt_masks = []
         gt_labels = []
         gt_bboxes = []
-
-        ann_info = self.data_infos[index]
+        ann_info = self.get_data_by_index(index)
         town_name = ann_info['town_name']
-        map_info = self.map_infos[town_name]
+        map_info = self.get_map_by_name(town_name)
         lane_points = map_info['lane_points']
         lane_sample_points = map_info['lane_sample_points']
         lane_types = map_info['lane_types']
@@ -304,7 +282,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
         trigger_volumes_types = map_info['trigger_volumes_types']
         world2lidar = np.array(ann_info['sensors']['LIDAR_TOP']['world2lidar'])
         ego_xy = np.linalg.inv(world2lidar)[0:2,3]
-
         #1st search
         max_distance = 100
         chosed_idx = []
@@ -313,14 +290,12 @@ class B2D_E2E_Dataset(Custom3DDataset):
             distance = np.linalg.norm((single_sample_points[:,0:2]-ego_xy),axis=-1)
             if np.min(distance) < max_distance:
                 chosed_idx.append(idx)
-
         for idx in chosed_idx:
             if not lane_types[idx] in self.map_element_class.keys():
                 continue
             points = lane_points[idx]
             points = np.concatenate([points,np.ones((points.shape[0],1))],axis=-1)
             points_in_ego = (world2lidar @ points.T).T
-            #print(points_in_ego)
             mask = (points_in_ego[:,0]>self.point_cloud_range[0]) & (points_in_ego[:,0]<self.point_cloud_range[3]) & (points_in_ego[:,1]>self.point_cloud_range[1]) & (points_in_ego[:,1]<self.point_cloud_range[4])
             points_in_ego_range = points_in_ego[mask,0:2]
             if len(points_in_ego_range) > 1:
@@ -354,18 +329,14 @@ class B2D_E2E_Dataset(Custom3DDataset):
                 gt_labels.append(gt_label)
                 ys, xs = np.where(gt_mask==1)
                 gt_bboxes.append([min(xs), min(ys), max(xs), max(ys)]) 
-
         if len(gt_masks) == 0:
             gt_masks.append(np.zeros(self.bev_size,dtype=np.uint8))
             gt_labels.append(-1)
             gt_bboxes.append([0,0,0,0])
-
         gt_masks = np.stack(gt_masks)
         gt_labels = np.array(gt_labels)
         gt_bboxes = np.array(gt_bboxes)
-
         return gt_masks,gt_labels,gt_bboxes
-
 
     def get_ann_info(self, index):
         """Get annotation info according to the given index.
@@ -381,9 +352,8 @@ class B2D_E2E_Dataset(Custom3DDataset):
                 - gt_labels_3d (np.ndarray): Labels of ground truths.
                 - gt_names (list[str]): Class names of ground truths.
         """
-        info = self.data_infos[index]
+        info = self.get_data_by_index(index)
         # filter out bbox containing no points
-
         for i in range(len(info['gt_names'])):
             if info['gt_names'][i] in self.NameMapping.keys():
                 info['gt_names'][i] = self.NameMapping[info['gt_names'][i]]
@@ -392,7 +362,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
         gt_names_3d = info['gt_names'][mask]
         gt_inds = info['gt_ids']
         gt_labels_3d = []
-
         for cat in gt_names_3d:
             if cat in self.CLASSES:
                 gt_labels_3d.append(self.CLASSES.index(cat))
@@ -406,14 +375,14 @@ class B2D_E2E_Dataset(Custom3DDataset):
             box_dim=gt_bboxes_3d.shape[-1],
             origin=(0.5, 0.5, 0.5)).convert_to(self.box_mode_3d)
         
-        ego_future_track, ego_future_mask = self.get_ego_future_xy(index,self.sample_interval,self.predict_frames)
-        past_track, past_mask = self.get_past_or_future_xy(index,self.sample_interval,self.past_frames,past_or_future='past',local_xy=True)
-        predict_track, predict_mask = self.get_past_or_future_xy(index,self.sample_interval,self.predict_frames,past_or_future='future',local_xy=False)
-        mask = (past_mask.sum((1,2))>0).astype(np.int)
+        ego_future_track, ego_future_mask = self.get_ego_future_xy(index, self.sample_interval, self.predict_frames)
+        past_track, past_mask = self.get_past_or_future_xy(index, self.sample_interval, self.past_frames, past_or_future='past', local_xy=True)
+        predict_track, predict_mask = self.get_past_or_future_xy(index, self.sample_interval, self.predict_frames, past_or_future='future', local_xy=False)
+        mask = (past_mask.sum((1,2)) > 0).astype(np.int)
         future_track = predict_track[:,0:self.future_frames,:]*mask[:,None,None]
         future_mask = predict_mask[:,0:self.future_frames,:]*mask[:,None,None]
-        full_past_track = np.concatenate([past_track,future_track],axis=1)
-        full_past_mask = np.concatenate([past_mask,future_mask],axis=1)
+        full_past_track = np.concatenate([past_track,future_track], axis=1)
+        full_past_mask = np.concatenate([past_mask,future_mask], axis=1)
         gt_sdc_bbox, gt_sdc_label =self.generate_sdc_info(index)
         anns_results = dict(
             gt_bboxes_3d=gt_bboxes_3d,
@@ -433,7 +402,7 @@ class B2D_E2E_Dataset(Custom3DDataset):
 
     def get_ann_boxes_only(self, index):
 
-        info = self.data_infos[index]
+        info = self.get_data_by_index(index)
         for i in range(len(info['gt_names'])):
             if info['gt_names'][i] in self.NameMapping.keys():
                 info['gt_names'][i] = self.NameMapping[info['gt_names'][i]]
@@ -444,7 +413,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
         for cat in gt_names_3d:
             if cat in self.CLASSES:
                 gt_labels_3d.append(self.CLASSES.index(cat))
-            
             else:
                 gt_labels_3d.append(-1)
         gt_labels_3d = np.array(gt_labels_3d)
@@ -469,7 +437,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
         if self.test_mode:
             return self.prepare_test_data(idx)
         while True:
-
             data = self.prepare_train_data(idx)
             if data is None:
                 idx = self._rand_another(idx)
@@ -477,11 +444,10 @@ class B2D_E2E_Dataset(Custom3DDataset):
             return data
         
     def generate_sdc_info(self,idx):
-
-        info = self.data_infos[idx]
+        info = self.get_data_by_index(idx)
         ego_size = info['ego_size']
         ego_vel = info['ego_vel']
-        psudo_sdc_bbox = np.array([0.0, 0.0, 0.0, ego_size[0], ego_size[1], ego_size[2], -np.pi, ego_vel[1], ego_vel[0] ])
+        psudo_sdc_bbox = np.array([0.0, 0.0, 0.0, ego_size[0], ego_size[1], ego_size[2], -np.pi, ego_vel[1], ego_vel[0]])
         if not self.with_velocity:
             psudo_sdc_bbox = psudo_sdc_bbox[0:7]
         gt_bboxes_3d = np.array([psudo_sdc_bbox]).astype(np.float32)
@@ -493,28 +459,24 @@ class B2D_E2E_Dataset(Custom3DDataset):
             else:
                 gt_labels_3d.append(-1)
         gt_labels_3d = np.array(gt_labels_3d)
-
         # the nuscenes box center is [0.5, 0.5, 0.5], we change it to be
         # the same as KITTI (0.5, 0.5, 0)
         gt_bboxes_3d = LiDARInstance3DBoxes(
             gt_bboxes_3d,
             box_dim=gt_bboxes_3d.shape[-1],
             origin=(0.5, 0.5, 0.5)).convert_to(self.box_mode_3d)
-  
         gt_labels_3d = DC(to_tensor(gt_labels_3d))
         gt_bboxes_3d = DC(gt_bboxes_3d, cpu_only=True)
-
         return gt_bboxes_3d, gt_labels_3d
 
-    def get_past_or_future_xy(self,idx,sample_rate,frames,past_or_future,local_xy=False):
+    def get_past_or_future_xy(self, idx, sample_rate, frames, past_or_future, local_xy=False):
 
         assert past_or_future in ['past','future']
         if past_or_future == 'past':
-            adj_idx_list = range(idx-sample_rate,idx-(frames+1)*sample_rate,-sample_rate)
+            adj_idx_list = range(idx - sample_rate, idx - (frames + 1) * sample_rate, -sample_rate)
         else:
-            adj_idx_list = range(idx+sample_rate,idx+(frames+1)*sample_rate,sample_rate)
-
-        cur_frame = self.data_infos[idx]
+            adj_idx_list = range(idx + sample_rate, idx + (frames + 1) * sample_rate, sample_rate)
+        cur_frame = self.get_data_by_index(idx)
         box_ids = cur_frame['gt_ids']
         adj_track = np.zeros((len(box_ids),frames,2))
         adj_mask = np.zeros((len(box_ids),frames,2))
@@ -525,14 +487,12 @@ class B2D_E2E_Dataset(Custom3DDataset):
             cur_xy = cur_box2lidar[0:2,3]      
             for j in range(len(adj_idx_list)):
                 adj_idx = adj_idx_list[j]
-                if adj_idx <0 or adj_idx>=len(self.data_infos):
+                if not self.is_in_same_route(idx, adj_idx):
                     break
-                adj_frame = self.data_infos[adj_idx]
-                if adj_frame['folder'] != cur_frame ['folder']:
-                    break
-                if len(np.where(adj_frame['gt_ids']==box_id)[0])==0:
+                adj_frame = self.get_data_by_index(adj_idx)
+                if len(np.where(adj_frame['gt_ids'] == box_id)[0]) == 0:
                     continue
-                assert len(np.where(adj_frame['gt_ids']==box_id)[0]) == 1 , np.where(adj_frame['gt_ids']==box_id)[0]
+                assert len(np.where(adj_frame['gt_ids']==box_id)[0]) == 1, np.where(adj_frame['gt_ids']==box_id)[0]
                 adj_idx = np.where(adj_frame['gt_ids']==box_id)[0][0]
                 adj_box2lidar = world2lidar_ego_cur @ adj_frame['npc2world'][adj_idx]
                 adj_xy = adj_box2lidar[0:2,3]    
@@ -544,18 +504,16 @@ class B2D_E2E_Dataset(Custom3DDataset):
 
     def get_ego_future_xy(self,idx,sample_rate,frames):
 
-        adj_idx_list = range(idx+sample_rate,idx+(frames+1)*sample_rate,sample_rate)
-        cur_frame = self.data_infos[idx]
-        adj_track = np.zeros((1,frames,3))
-        adj_mask = np.zeros((1,frames,2))
+        adj_idx_list = range(idx + sample_rate, idx + (frames + 1) * sample_rate, sample_rate)
+        cur_frame = self.get_data_by_index(idx)
+        adj_track = np.zeros((1, frames, 3))
+        adj_mask = np.zeros((1, frames, 2))
         world2lidar_ego_cur = cur_frame['sensors']['LIDAR_TOP']['world2lidar']
         for j in range(len(adj_idx_list)):
             adj_idx = adj_idx_list[j]
-            if adj_idx <0 or adj_idx>=len(self.data_infos):
+            if not self.is_in_same_route(idx, adj_idx):
                 break
-            adj_frame = self.data_infos[adj_idx]
-            if adj_frame['folder'] != cur_frame ['folder']:
-                break
+            adj_frame = self.get_data_by_index(adj_idx)
             world2lidar_ego_adj = adj_frame['sensors']['LIDAR_TOP']['world2lidar']
             adj2cur_lidar = world2lidar_ego_cur @ np.linalg.inv(world2lidar_ego_adj)
             xy = adj2cur_lidar[0:2,3]
@@ -577,7 +535,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
         l2e_t_vecs = []
         e2g_r_mats = []
         e2g_t_vecs = []
-
         for index in indices:
             if index == -1:
                 l2e_r_mats.append(None)
@@ -585,7 +542,7 @@ class B2D_E2E_Dataset(Custom3DDataset):
                 e2g_r_mats.append(None)
                 e2g_t_vecs.append(None)
             else:
-                info = self.data_infos[index]
+                info = self.get_data_by_index(index)
                 lidar2ego = info['sensors']['LIDAR_TOP']['lidar2ego']
                 l2e_r = lidar2ego[0:3,0:3]
                 l2e_t = lidar2ego[0:3,3]
@@ -634,32 +591,26 @@ class B2D_E2E_Dataset(Custom3DDataset):
         Returns:
             dict[str, float]: Results of each evaluation metric.
         """
-
         # NOTE:Curremtly we only support evaluation on detection and planning 
-
         result_files, tmp_dir = self.format_results(results['bbox_results'], jsonfile_prefix)    
         result_path = result_files
         with open(result_path) as f:
             result_data = json.load(f)
         pred_boxes = EvalBoxes.deserialize(result_data['results'], DetectionBox)
         meta = result_data['meta']
-
         gt_boxes = self.load_gt()
-
         metric_data_list = DetectionMetricDataList()
         for class_name in self.eval_cfg['class_names']:
             for dist_th in self.eval_cfg['dist_ths']:
                 md = accumulate(gt_boxes, pred_boxes, class_name, center_distance, dist_th)
                 metric_data_list.set(class_name, dist_th, md)
                 metrics = DetectionMetrics(self.eval_cfg)
-
         for class_name in self.eval_cfg['class_names']:
             # Compute APs.
             for dist_th in self.eval_cfg['dist_ths']:
                 metric_data = metric_data_list[(class_name, dist_th)]
                 ap = calc_ap(metric_data, self.eval_cfg['min_recall'], self.eval_cfg['min_precision'])
                 metrics.add_label_ap(class_name, dist_th, ap)
-
             # Compute TP metrics.
             for metric_name in self.eval_cfg['tp_metrics']:
                 metric_data = metric_data_list[(class_name, self.eval_cfg['dist_th_tp'])]
@@ -679,7 +630,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
             print('%s: %.4f' % (err_name_mapping[tp_name], tp_val))
         print('NDS: %.4f' % (metrics_summary['nd_score']))
         #print('Eval time: %.1fs' % metrics_summary['eval_time'])
-
         # Print per-class metrics.
         print()
         print('Per-class results:')
@@ -693,7 +643,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
                      class_tps[class_name]['scale_err'],
                      class_tps[class_name]['orient_err'],
                      class_tps[class_name]['vel_err']))        
-
         detail = dict()
         metric_prefix = 'bbox_NuScenes'
         for name in self.eval_cfg['class_names']:
@@ -722,18 +671,14 @@ class B2D_E2E_Dataset(Custom3DDataset):
                         row_value.append('%.4f' % float(value[i]))
                     planning_tab.add_row(row_value)
                 print(planning_tab)
-
-
         return detail
 
     def load_gt(self):
         all_annotations = EvalBoxes()
-        for i in range(len(self.data_infos)):
+        for i in range(len(self)):
             sample_boxes = []
-            sample_data = self.data_infos[i]
-
+            sample_data = self.get_data_by_index(i)
             gt_boxes = sample_data['gt_boxes']
-            
             for j in range(gt_boxes.shape[0]):
                 class_name = self.NameMapping[sample_data['gt_names'][j]]
                 if not class_name in self.eval_cfg['class_range'].keys():
@@ -768,10 +713,8 @@ class B2D_E2E_Dataset(Custom3DDataset):
             str: Path of the output json file.
         """
 
-
         nusc_annos = {}
         mapped_class_names = self.CLASSES
-
         print('Start to convert detection format...')
         for sample_id, det in enumerate(track_iter_progress(results)):
             #pdb.set_trace()
@@ -783,10 +726,8 @@ class B2D_E2E_Dataset(Custom3DDataset):
             box_dims = box3d.dims
             box_yaw = box3d.yaw.numpy()
             box_yaw = -box_yaw - np.pi / 2
-            sample_token = self.data_infos[sample_id]['folder'] + '_' + str(self.data_infos[sample_id]['frame_idx'])
-
-
-
+            data_sample = self.get_data_by_index(sample_id)
+            sample_token = data_sample['folder'] +  '_' + str(data_sample['frame_idx'])
             for i in range(len(box3d)):
                 #import pdb;pdb.set_trace()
                 quat = list(Quaternion(axis=[0, 0, 1], radians=box_yaw[i]))
@@ -807,7 +748,6 @@ class B2D_E2E_Dataset(Custom3DDataset):
             'meta': self.modality,
             'results': nusc_annos,
         }
-
         mkdir_or_exist(jsonfile_prefix)
         res_path = osp.join(jsonfile_prefix, 'results_nusc.json')
         print('Results writes to', res_path)
@@ -833,13 +773,11 @@ class B2D_E2E_Dataset(Custom3DDataset):
         # assert len(results) == len(self), (
         #     'The length of results is not equal to the dataset len: {} != {}'.
         #     format(len(results), len(self)))
-
         if jsonfile_prefix is None:
             tmp_dir = tempfile.TemporaryDirectory()
             jsonfile_prefix = osp.join(tmp_dir.name, 'results')
         else:
             tmp_dir = None
-
         if not ('pts_bbox' in results[0] or 'img_bbox' in results[0]):
             result_files = self._format_bbox(results, jsonfile_prefix)
         else:

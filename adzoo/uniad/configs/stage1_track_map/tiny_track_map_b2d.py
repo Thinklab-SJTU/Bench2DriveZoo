@@ -50,7 +50,6 @@ NameMapping = {
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/Mini2021/SM_Mini2021_parked.SM_Mini2021_parked": 'car',
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/NissanPatrol2021/SM_NissanPatrol2021_parked.SM_NissanPatrol2021_parked": 'car',
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/TeslaM3/SM_TeslaM3_parked.SM_TeslaM3_parked": 'car',
-    "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/VolkswagenT2/SM_VolkswagenT2_2021_Parked.SM_VolkswagenT2_2021_Parked": 'car',
     # bus
     # van
     "/Game/Carla/Static/Car/4Wheeled/ParkedVehicles/VolkswagenT2/SM_VolkswagenT2_2021_Parked.SM_VolkswagenT2_2021_Parked": "van",
@@ -83,6 +82,7 @@ NameMapping = {
 
     #=================pedestrian==============
     "walker.pedestrian.0001": 'pedestrian',
+    "walker.pedestrian.0002": 'pedestrian',
     "walker.pedestrian.0003": 'pedestrian',
     "walker.pedestrian.0004": 'pedestrian',
     "walker.pedestrian.0005": 'pedestrian',
@@ -105,10 +105,12 @@ NameMapping = {
     "walker.pedestrian.0032": 'pedestrian',
     "walker.pedestrian.0034": 'pedestrian',
     "walker.pedestrian.0035": 'pedestrian',
+    "walker.pedestrian.0036": 'pedestrian',
     "walker.pedestrian.0041": 'pedestrian',
     "walker.pedestrian.0042": 'pedestrian',
     "walker.pedestrian.0046": 'pedestrian',
     "walker.pedestrian.0047": 'pedestrian',
+    "walker.pedestrian.0049": 'pedestrian',
 
     # ==========================================
     "static.prop.dirtdebris01": 'others',
@@ -449,15 +451,13 @@ model = dict(
     ),
 )
 dataset_type = "B2D_E2E_Dataset"
-data_root = "data/bench2drive"
+data_root = "data/bench2drive/trainval"
 info_root = "data/infos"
-map_root = "data/bench2drive/maps"
-map_file = "data/infos/b2d_map_infos.pkl"
+map_file = "data/infos/b2d_infos_map"
 file_client_args = dict(backend="disk")
-ann_file_train=info_root + f"/b2d_infos_train.pkl"
-ann_file_val=info_root + f"/b2d_infos_val.pkl"
-ann_file_test=info_root + f"/b2d_infos_val.pkl"
-
+ann_file_train=info_root + f"/b2d_infos_train_meta.pkl"
+ann_file_val=info_root + f"/b2d_infos_val_meta.pkl"
+ann_file_test=info_root + f"/b2d_infos_val_meta.pkl"
 
 train_pipeline = [
     dict(type="LoadMultiViewImageFromFilesInCeph", to_float32=True, file_client_args=file_client_args, img_root=data_root),
@@ -582,7 +582,6 @@ data = dict(
         pipeline=train_pipeline,
         classes=class_names,
         name_mapping=NameMapping,
-        map_root=map_root,
         map_file=map_file,
         modality=input_modality,
         patch_size=patch_size,
@@ -593,6 +592,9 @@ data = dict(
         future_frames=fut_steps,
         point_cloud_range=point_cloud_range,
         box_type_3d="LiDAR",
+        use_separated_map_data=True,
+        use_separated_clip_data=True,
+        cache_lenth=300,
     ),
     val=dict(
         type=dataset_type,
@@ -600,7 +602,6 @@ data = dict(
         ann_file=ann_file_val,
         pipeline=test_pipeline,
         name_mapping=NameMapping,
-        map_root=map_root,
         map_file=map_file,
         bev_size=(bev_h_, bev_w_),
         predict_frames=predict_steps,
@@ -608,11 +609,13 @@ data = dict(
         future_frames=fut_steps,
         classes=class_names,
         modality=input_modality,
-        samples_per_gpu=1,
         point_cloud_range=point_cloud_range,
         eval_cfg=eval_cfg,
         #eval_mod=['det', 'track', 'map'],
         box_type_3d="LiDAR",
+        use_separated_map_data=True,
+        use_separated_clip_data=True,
+        cache_lenth=-1,
     ),
     test=dict(
         type=dataset_type,
@@ -620,7 +623,6 @@ data = dict(
         ann_file=ann_file_val,
         pipeline=test_pipeline,
         name_mapping=NameMapping,
-        map_root=map_root,
         map_file=map_file,
         bev_size=(bev_h_, bev_w_),
         predict_frames=predict_steps,
@@ -628,11 +630,13 @@ data = dict(
         future_frames=fut_steps,
         classes=class_names,
         modality=input_modality,
-        samples_per_gpu=1,
         point_cloud_range=point_cloud_range,
         eval_cfg=eval_cfg,
         #eval_mod=['det', 'track', 'map'],
         box_type_3d="LiDAR",
+        use_separated_map_data=True,
+        use_separated_clip_data=True,
+        cache_lenth=-1,
     ),
     shuffler_sampler=dict(type="DistributedGroupSampler"),
     nonshuffler_sampler=dict(type="DistributedSampler"),

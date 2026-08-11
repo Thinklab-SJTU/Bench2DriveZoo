@@ -294,6 +294,7 @@ class BaseRunner(metaclass=ABCMeta):
                 "before_train_epoch".
         """
         for hook in self._hooks:
+            # print(f"[debug] calling {hook.__class__.__name__}'s {fn_name}") #
             getattr(hook, fn_name)(self)
 
     def get_hook_info(self):
@@ -347,9 +348,22 @@ class BaseRunner(metaclass=ABCMeta):
         else:
             checkpoint = self.load_checkpoint(
                 checkpoint, map_location=map_location)
-
+        
+        
+            # print("[debug] calling load_state_dict in resume") #
+            # # just for iteraton based
+            
+            # print("[debug] called load_state_dict in resume") #
         self._epoch = checkpoint['meta']['epoch']
         self._iter = checkpoint['meta']['iter']
+        # print("[debug] before calling load_state_dict in resume") #
+        # print(f"[debug] hasattr(self, 'data_loader'): {hasattr(self, 'data_loader')}, 'iter_loader_state' in checkpoint['meta']: {'iter_loader_state' in checkpoint['meta']}") #
+        if 'iter_loader_state' in checkpoint['meta']:
+            self.iter_loader_state = checkpoint['meta']['iter_loader_state']
+            self._epoch = self.iter_loader_state['epoch']
+            self._iter = self.iter_loader_state['iter_index']
+            
+        # print(f"[debug] in resume, self._epoch = {self._epoch}, self._iter = {self._iter}")
         if self.meta is None:
             self.meta = {}
         self.meta.setdefault('hook_msgs', {})
